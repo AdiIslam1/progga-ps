@@ -1,7 +1,5 @@
-version: '3.8'
-
 services:
-  postgress:
+  postgres:
     image: postgres:15
     container_name: postgres_db
     environment:
@@ -9,19 +7,32 @@ services:
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: mydb
     ports:
-      - '5432:5432'
+      - '5433:5432' # (Or whatever you set this to in the previous step)
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    
+    # ✅ ADD THIS: Ping the database every 5 seconds to see if it's awake
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   app:
     build: .
     container_name: nextjs_app
+    env_file:
+      - .env
     ports:
       - '3000:3000'
     environment:
-      - DATABASE_URL: postgresql://myuser:mypassword@[YOUR_SERVER_IP]:5432/mydb
+      DATABASE_URL: postgresql://myuser:mypassword@postgres:5432/mydb
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+    command: sh -c "npx prisma migrate deploy && npm run dev"
+    # ✅ MODIFY THIS: Tell the app to wait for the healthcheck to pass
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

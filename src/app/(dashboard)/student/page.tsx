@@ -3,10 +3,10 @@ import BigCalendarContainer from "@/components/BigCalendarContainer";
 import BigCalendar from "@/components/BigCalender";
 import EventCalendar from "@/components/EventCalendar";
 import prisma from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth-server";
 
 const StudentPage = async () => {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   const classItem = await prisma.class.findMany({
     where: {

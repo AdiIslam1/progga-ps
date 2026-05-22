@@ -14,8 +14,10 @@ RUN npm install
 COPY . .
 
 # Generate Database
-RUN npx prisma migrate dev --name init
-
+RUN npx prisma generate
+# Provide a fallback value during image build for Next.js/Prisma checks.
+ARG DATABASE_URL=postgresql://myuser:mypassword@postgres:5432/mydb
+ENV DATABASE_URL=$DATABASE_URL
 # Build the Next.js application
 RUN npm run build
 

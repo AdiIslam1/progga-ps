@@ -1,18 +1,24 @@
 import { Day, PrismaClient, UserSex } from "@prisma/client";
+import bcrypt from "bcryptjs";
+
 const prisma = new PrismaClient();
 
 async function main() {
+  const defaultPassword = await bcrypt.hash("password123", 10);
+
   // ADMIN
   await prisma.admin.create({
     data: {
       id: "admin1",
       username: "admin1",
+      password: defaultPassword,
     },
   });
   await prisma.admin.create({
     data: {
       id: "admin2",
       username: "admin2",
+      password: defaultPassword,
     },
   });
 
@@ -60,6 +66,7 @@ async function main() {
       data: {
         id: `teacher${i}`, // Unique ID for the teacher
         username: `teacher${i}`,
+        password: defaultPassword,
         name: `TName${i}`,
         surname: `TSurname${i}`,
         email: `teacher${i}@example.com`,
@@ -99,6 +106,7 @@ async function main() {
       data: {
         id: `parentId${i}`,
         username: `parentId${i}`,
+        password: defaultPassword,
         name: `PName ${i}`,
         surname: `PSurname ${i}`,
         email: `parent${i}@example.com`,
@@ -113,7 +121,8 @@ async function main() {
     await prisma.student.create({
       data: {
         id: `student${i}`, 
-        username: `student${i}`, 
+        username: `student${i}`,
+        password: defaultPassword,
         name: `SName${i}`,
         surname: `SSurname ${i}`,
         email: `student${i}@example.com`,
