@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import PackageForm from "./PackageForm";
 import DeletePackageBtn from "./DeletePackageBtn";
+import BillPackageBtn from "./BillPackageBtn";
 import { auth } from "@/lib/auth-server";
 import { redirect } from "next/navigation";
 
@@ -88,12 +89,22 @@ export default async function FeePackagesPage() {
                   )}
                 </div>
 
-                <div className="border-t border-gray-50 pt-3 mt-4 flex items-center justify-between">
-                  <span className="text-xs text-gray-400">Monthly Billing Rate</span>
-                  <span className="text-lg font-extrabold text-gray-900 flex items-center gap-0.5">
-                    <span className="text-sm font-semibold text-lamaSky">৳</span>
-                    {pkg.amount.toLocaleString()}
-                  </span>
+                <div className="border-t border-gray-50 pt-3 mt-4 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">Monthly Billing Rate</span>
+                    <span className="text-lg font-extrabold text-gray-900 flex items-center gap-0.5">
+                      <span className="text-sm font-semibold text-lamaSky">৳</span>
+                      {pkg.amount.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <BillPackageBtn 
+                    id={pkg.id}
+                    name={pkg.name}
+                    amount={pkg.amount}
+                    classId={pkg.classId}
+                    className={pkg.class?.name || null}
+                  />
                 </div>
               </div>
             ))}

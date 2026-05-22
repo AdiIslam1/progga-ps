@@ -63,6 +63,18 @@ export const billAdditionalFee = async (
     
     // 1. Single Student Billing
     if (data.studentId && data.studentId.trim() !== "") {
+      if (packageId) {
+        const existing = await prisma.feeCollection.findFirst({
+          where: { studentId: data.studentId, feePackageId: packageId },
+        });
+        if (existing) {
+          return { 
+            success: false, 
+            error: true, 
+            message: "This package has already been billed to this student." 
+          };
+        }
+      }
       await prisma.feeCollection.create({
         data: {
           studentId: data.studentId,
@@ -82,8 +94,29 @@ export const billAdditionalFee = async (
       });
 
       if (students.length > 0) {
+        let studentsToBill = students;
+        if (packageId) {
+          const existingCollections = await prisma.feeCollection.findMany({
+            where: {
+              feePackageId: packageId,
+              studentId: { in: students.map((s) => s.id) },
+            },
+            select: { studentId: true },
+          });
+          const billedStudentIds = new Set(existingCollections.map((c) => c.studentId));
+          studentsToBill = students.filter((s) => !billedStudentIds.has(s.id));
+        }
+
+        if (studentsToBill.length === 0) {
+          return {
+            success: true,
+            error: false,
+            message: "All students in this class have already been billed for this package.",
+          };
+        }
+
         await prisma.feeCollection.createMany({
-          data: students.map((s) => ({
+          data: studentsToBill.map((s) => ({
             studentId: s.id,
             feePackageId: packageId,
             name: data.name,
@@ -92,14 +125,44 @@ export const billAdditionalFee = async (
             status: FeeStatus.UNPAID,
           })),
         });
+
+        const skippedCount = students.length - studentsToBill.length;
+        if (skippedCount > 0) {
+          return {
+            success: true,
+            error: false,
+            message: `Billed ${studentsToBill.length} student(s) in this class. (Skipped ${skippedCount} already billed).`,
+          };
+        }
       }
     } 
     // 3. School-Wide Bulk Billing
     else {
       const students = await prisma.student.findMany({ select: { id: true } });
       if (students.length > 0) {
+        let studentsToBill = students;
+        if (packageId) {
+          const existingCollections = await prisma.feeCollection.findMany({
+            where: {
+              feePackageId: packageId,
+              studentId: { in: students.map((s) => s.id) },
+            },
+            select: { studentId: true },
+          });
+          const billedStudentIds = new Set(existingCollections.map((c) => c.studentId));
+          studentsToBill = students.filter((s) => !billedStudentIds.has(s.id));
+        }
+
+        if (studentsToBill.length === 0) {
+          return {
+            success: true,
+            error: false,
+            message: "All students school-wide have already been billed for this package.",
+          };
+        }
+
         await prisma.feeCollection.createMany({
-          data: students.map((s) => ({
+          data: studentsToBill.map((s) => ({
             studentId: s.id,
             feePackageId: packageId,
             name: data.name,
@@ -108,6 +171,15 @@ export const billAdditionalFee = async (
             status: FeeStatus.UNPAID,
           })),
         });
+
+        const skippedCount = students.length - studentsToBill.length;
+        if (skippedCount > 0) {
+          return {
+            success: true,
+            error: false,
+            message: `Billed ${studentsToBill.length} student(s) school-wide. (Skipped ${skippedCount} already billed).`,
+          };
+        }
       }
     }
 
@@ -116,7 +188,7 @@ export const billAdditionalFee = async (
     return { success: true, error: false };
   } catch (err) {
     console.error(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: "An unexpected error occurred." };
   }
 };
 
