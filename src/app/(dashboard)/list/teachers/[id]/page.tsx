@@ -191,9 +191,9 @@ const SingleTeacherPage = async ({
             </Link>
             <Link
               className="p-3 rounded-md bg-lamaSkyLight"
-              href={`/list/assignments?teacherId=${teacher.id}`}
+              href={`/routine`}
             >
-              Teacher&apos;s Assignments
+              Teacher&apos;s Routine
             </Link>
           </div>
         </div>

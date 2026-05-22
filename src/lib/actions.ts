@@ -457,3 +457,59 @@ export const deleteExam = async (
     return { success: false, error: true };
   }
 };
+
+// Save bulk student marks for a given exam
+export const saveBulkResults = async (
+  examId: number,
+  results: { studentId: string; score: number }[]
+) => {
+  try {
+    const calculateGradeAndGpa = (score: number) => {
+      if (score >= 80) return { grade: "A+", gpa: 5.0 };
+      if (score >= 70) return { grade: "A", gpa: 4.0 };
+      if (score >= 60) return { grade: "A-", gpa: 3.5 };
+      if (score >= 50) return { grade: "B", gpa: 3.0 };
+      if (score >= 40) return { grade: "C", gpa: 2.0 };
+      if (score >= 33) return { grade: "D", gpa: 1.0 };
+      return { grade: "F", gpa: 0.0 };
+    };
+
+    // Find existing results for this exam to decide between update and create
+    const existingResults = await prisma.result.findMany({
+      where: { examId },
+    });
+
+    const existingMap = new Map(existingResults.map((r) => [r.studentId, r.id]));
+
+    await prisma.$transaction(
+      results.map((r) => {
+        const { grade, gpa } = calculateGradeAndGpa(r.score);
+        const existingId = existingMap.get(r.studentId);
+
+        if (existingId) {
+          return prisma.result.update({
+            where: { id: existingId },
+            data: { score: r.score, grade, gpa },
+          });
+        } else {
+          return prisma.result.create({
+            data: {
+              studentId: r.studentId,
+              examId,
+              score: r.score,
+              grade,
+              gpa,
+            },
+          });
+        }
+      })
+    );
+
+    revalidatePath("/exams/marksheet");
+    revalidatePath("/list/results");
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false, message: "Failed to record marks." };
+  }
+};

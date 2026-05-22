@@ -133,10 +133,7 @@ const renderRow = (item: ResultList) => (
     case "admin":
       break;
     case "teacher":
-      query.OR = [
-        { exam: { lesson: { teacherId: currentUserId! } } },
-        { assignment: { lesson: { teacherId: currentUserId! } } },
-      ];
+      query.exam = { lesson: { teacherId: currentUserId! } };
       break;
 
     case "student":
@@ -167,16 +164,6 @@ const renderRow = (item: ResultList) => (
             },
           },
         },
-        assignment: {
-          include: {
-            lesson: {
-              select: {
-                class: { select: { name: true } },
-                teacher: { select: { name: true, surname: true } },
-              },
-            },
-          },
-        },
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
@@ -185,11 +172,9 @@ const renderRow = (item: ResultList) => (
   ]);
 
   const data = dataRes.map((item) => {
-    const assessment = item.exam || item.assignment;
+    const assessment = item.exam;
 
     if (!assessment) return null;
-
-    const isExam = "startTime" in assessment;
 
     return {
       id: item.id,
@@ -200,9 +185,9 @@ const renderRow = (item: ResultList) => (
       teacherSurname: assessment.lesson.teacher.surname,
       score: item.score,
       className: assessment.lesson.class.name,
-      startTime: isExam ? assessment.startTime : assessment.startDate,
+      startTime: assessment.startTime,
     };
-  });
+  }).filter((x): x is NonNullable<typeof x> => x !== null);
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">

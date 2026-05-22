@@ -25,12 +25,6 @@ const menuItems = [
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/parent.png",
-        label: "Parents",
-        href: "/list/parents",
-        visible: ["admin", "teacher"],
-      },
-      {
         icon: "/subject.png",
         label: "Subjects",
         href: "/list/subjects",
@@ -43,11 +37,16 @@ const menuItems = [
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/lesson.png",
-        label: "Lessons",
-        href: "/list/lessons",
-        visible: ["admin", "teacher"],
+        icon: "/calendar.png",
+        label: "Class Routine",
+        href: "/routine",
+        visible: ["admin", "teacher", "student", "parent"],
       },
+    ],
+  },
+  {
+    title: "ACADEMICS",
+    items: [
       {
         icon: "/exam.png",
         label: "Exams",
@@ -55,14 +54,26 @@ const menuItems = [
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/assignment.png",
-        label: "Assignments",
-        href: "/list/assignments",
+        icon: "/calendar.png",
+        label: "Exam Schedule",
+        href: "/exams/schedule",
+        visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
+        icon: "/exam.png",
+        label: "Marksheet Entry",
+        href: "/exams/marksheet",
+        visible: ["admin", "teacher"],
+      },
+      {
+        icon: "/result.png",
+        label: "Report Cards",
+        href: "/report-cards",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/result.png",
-        label: "Results",
+        label: "Exam Results",
         href: "/list/results",
         visible: ["admin", "teacher", "student", "parent"],
       },
@@ -72,22 +83,56 @@ const menuItems = [
         href: "/list/attendance",
         visible: ["admin", "teacher", "student", "parent"],
       },
+    ],
+  },
+  {
+    title: "ACCOUNTING",
+    items: [
       {
-        icon: "/calendar.png",
-        label: "Events",
-        href: "/list/events",
-        visible: ["admin", "teacher", "student", "parent"],
+        icon: "/finance.png",
+        label: "Fee Packages",
+        href: "/fees/packages",
+        visible: ["admin"],
       },
       {
+        icon: "/finance.png",
+        label: "Collect Fees",
+        href: "/fees/collect",
+        visible: ["admin"],
+      },
+      {
+        icon: "/finance.png",
+        label: "Fee Ledger",
+        href: "/fees/ledger",
+        visible: ["admin", "student", "parent"],
+      },
+      {
+        icon: "/finance.png",
+        label: "Finance Reports",
+        href: "/fees/reports",
+        visible: ["admin"],
+      },
+    ],
+  },
+  {
+    title: "MESSAGING",
+    items: [
+      {
         icon: "/message.png",
-        label: "Messages",
-        href: "/list/messages",
+        label: "Notice & SMS Board",
+        href: "/notices",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/announcement.png",
         label: "Announcements",
         href: "/list/announcements",
+        visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
+        icon: "/calendar.png",
+        label: "Events Calendar",
+        href: "/list/events",
         visible: ["admin", "teacher", "student", "parent"],
       },
     ],

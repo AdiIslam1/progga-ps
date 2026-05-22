@@ -75,7 +75,17 @@ const data = [
   },
 ];
 
-const FinanceChart = () => {
+interface FinanceChartProps {
+  data?: {
+    name: string;
+    income: number;
+    expense: number;
+  }[];
+}
+
+const FinanceChart = ({ data: dynamicData }: FinanceChartProps) => {
+  const chartData = dynamicData || data;
+
   return (
     <div className="bg-white rounded-xl w-full h-full p-4">
       <div className="flex justify-between items-center">
@@ -86,7 +96,7 @@ const FinanceChart = () => {
         <LineChart
           width={500}
           height={300}
-          data={data}
+          data={chartData}
           margin={{
             top: 5,
             right: 30,
