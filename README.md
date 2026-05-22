@@ -1,4 +1,4 @@
-# Lama Dev School Management Dashboard
+# Progga Preparatory School
 
 ## Getting Started
 
