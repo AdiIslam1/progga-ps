@@ -513,3 +513,57 @@ export const saveBulkResults = async (
     return { success: false, message: "Failed to record marks." };
   }
 };
+
+// Save bulk student attendance for a given lesson and date
+export const saveBulkAttendance = async (
+  lessonId: number,
+  dateStr: string, // "YYYY-MM-DD"
+  attendances: { studentId: string; present: boolean }[]
+) => {
+  try {
+    const attendanceDate = new Date(dateStr);
+    attendanceDate.setHours(0, 0, 0, 0); // Normalize time boundary
+
+    // Find existing attendance records for this lesson and date
+    const existing = await prisma.attendance.findMany({
+      where: {
+        lessonId,
+        date: {
+          gte: attendanceDate,
+          lt: new Date(attendanceDate.getTime() + 24 * 60 * 60 * 1000),
+        },
+      },
+    });
+
+    const existingMap = new Map(existing.map((a) => [a.studentId, a.id]));
+
+    await prisma.$transaction(
+      attendances.map((a) => {
+        const existingId = existingMap.get(a.studentId);
+
+        if (existingId) {
+          return prisma.attendance.update({
+            where: { id: existingId },
+            data: { present: a.present },
+          });
+        } else {
+          return prisma.attendance.create({
+            data: {
+              studentId: a.studentId,
+              lessonId,
+              date: attendanceDate,
+              present: a.present,
+            },
+          });
+        }
+      })
+    );
+
+    revalidatePath("/list/attendance");
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false, message: "Failed to record attendance." };
+  }
+};
+
