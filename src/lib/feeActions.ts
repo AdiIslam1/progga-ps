@@ -56,22 +56,26 @@ export const billAdditionalFee = async (
     feePackageId?: string;
     classId?: string;
     studentId?: string;
+    month?: string; // e.g. "2026-05" — required for monthly tuition billing
   }
 ) => {
   try {
     const packageId = data.feePackageId ? parseInt(data.feePackageId) : null;
-    
+    const month = data.month || null;
+
     // 1. Single Student Billing
     if (data.studentId && data.studentId.trim() !== "") {
       if (packageId) {
         const existing = await prisma.feeCollection.findFirst({
-          where: { studentId: data.studentId, feePackageId: packageId },
+          where: { studentId: data.studentId, feePackageId: packageId, month },
         });
         if (existing) {
-          return { 
-            success: false, 
-            error: true, 
-            message: "This package has already been billed to this student." 
+          return {
+            success: false,
+            error: true,
+            message: month
+              ? `This package has already been billed to this student for ${month}.`
+              : "This package has already been billed to this student.",
           };
         }
       }
@@ -81,16 +85,16 @@ export const billAdditionalFee = async (
           feePackageId: packageId,
           name: data.name,
           amount: data.amount,
-          month: null, // Additional one-time fee
+          month,
           status: FeeStatus.UNPAID,
         },
       });
-    } 
+    }
     // 2. Bulk Class-Wide Billing
     else if (data.classId && data.classId.trim() !== "") {
       const students = await prisma.student.findMany({
         where: { classId: parseInt(data.classId) },
-        select: { id: true },
+        select: { id: true, customTuitionFee: true },
       });
 
       if (students.length > 0) {
@@ -99,87 +103,97 @@ export const billAdditionalFee = async (
           const existingCollections = await prisma.feeCollection.findMany({
             where: {
               feePackageId: packageId,
+              month,
               studentId: { in: students.map((s) => s.id) },
             },
             select: { studentId: true },
           });
-          const billedStudentIds = new Set(existingCollections.map((c) => c.studentId));
-          studentsToBill = students.filter((s) => !billedStudentIds.has(s.id));
+          const billedIds = new Set(existingCollections.map((c) => c.studentId));
+          studentsToBill = students.filter((s) => !billedIds.has(s.id));
         }
 
         if (studentsToBill.length === 0) {
           return {
             success: true,
             error: false,
-            message: "All students in this class have already been billed for this package.",
+            message: month
+              ? `All students in this class have already been billed for ${month}.`
+              : "All students in this class have already been billed for this package.",
           };
         }
 
-        await prisma.feeCollection.createMany({
-          data: studentsToBill.map((s) => ({
+        let customCount = 0;
+        const billData = studentsToBill.map((s) => {
+          const billAmount = s.customTuitionFee ?? data.amount;
+          if (s.customTuitionFee != null) customCount++;
+          return {
             studentId: s.id,
             feePackageId: packageId,
             name: data.name,
-            amount: data.amount,
-            month: null,
+            amount: billAmount,
+            month,
             status: FeeStatus.UNPAID,
-          })),
+          };
         });
+        await prisma.feeCollection.createMany({ data: billData });
 
         const skippedCount = students.length - studentsToBill.length;
-        if (skippedCount > 0) {
-          return {
-            success: true,
-            error: false,
-            message: `Billed ${studentsToBill.length} student(s) in this class. (Skipped ${skippedCount} already billed).`,
-          };
-        }
+        let message = `Billed ${studentsToBill.length} student(s) in this class.`;
+        if (customCount > 0) message += ` ${customCount} billed at custom tuition rates.`;
+        if (skippedCount > 0) message += ` Skipped ${skippedCount} already billed.`;
+        return { success: true, error: false, message };
       }
-    } 
+    }
     // 3. School-Wide Bulk Billing
     else {
-      const students = await prisma.student.findMany({ select: { id: true } });
+      const students = await prisma.student.findMany({
+        select: { id: true, customTuitionFee: true },
+      });
       if (students.length > 0) {
         let studentsToBill = students;
         if (packageId) {
           const existingCollections = await prisma.feeCollection.findMany({
             where: {
               feePackageId: packageId,
+              month,
               studentId: { in: students.map((s) => s.id) },
             },
             select: { studentId: true },
           });
-          const billedStudentIds = new Set(existingCollections.map((c) => c.studentId));
-          studentsToBill = students.filter((s) => !billedStudentIds.has(s.id));
+          const billedIds = new Set(existingCollections.map((c) => c.studentId));
+          studentsToBill = students.filter((s) => !billedIds.has(s.id));
         }
 
         if (studentsToBill.length === 0) {
           return {
             success: true,
             error: false,
-            message: "All students school-wide have already been billed for this package.",
+            message: month
+              ? `All students have already been billed for ${month}.`
+              : "All students school-wide have already been billed for this package.",
           };
         }
 
-        await prisma.feeCollection.createMany({
-          data: studentsToBill.map((s) => ({
+        let customCount = 0;
+        const billData = studentsToBill.map((s) => {
+          const billAmount = s.customTuitionFee ?? data.amount;
+          if (s.customTuitionFee != null) customCount++;
+          return {
             studentId: s.id,
             feePackageId: packageId,
             name: data.name,
-            amount: data.amount,
-            month: null,
+            amount: billAmount,
+            month,
             status: FeeStatus.UNPAID,
-          })),
+          };
         });
+        await prisma.feeCollection.createMany({ data: billData });
 
         const skippedCount = students.length - studentsToBill.length;
-        if (skippedCount > 0) {
-          return {
-            success: true,
-            error: false,
-            message: `Billed ${studentsToBill.length} student(s) school-wide. (Skipped ${skippedCount} already billed).`,
-          };
-        }
+        let message = `Billed ${studentsToBill.length} student(s) school-wide.`;
+        if (customCount > 0) message += ` ${customCount} billed at custom tuition rates.`;
+        if (skippedCount > 0) message += ` Skipped ${skippedCount} already billed.`;
+        return { success: true, error: false, message };
       }
     }
 
@@ -196,19 +210,18 @@ export const billAdditionalFee = async (
 export const collectFees = async (
   studentId: string,
   collectionIds: number[],
-  cashierUsername: string
+  cashierUsername: string,
+  discount: number = 0
 ) => {
   try {
     if (collectionIds.length === 0) {
       return { success: false, message: "No unpaid items selected" };
     }
 
-    // Generate a unique receipt number based on Bangladeshi conventions
-    const dateStr = new Date().toISOString().slice(0, 7).replace("-", ""); // e.g., "202605"
+    const dateStr = new Date().toISOString().slice(0, 7).replace("-", "");
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const receiptNo = `REC-${dateStr}-${randomSuffix}`;
 
-    // 1. Fetch matching collections first to read their billed amounts
     const collections = await prisma.feeCollection.findMany({
       where: { id: { in: collectionIds }, studentId },
     });
@@ -217,14 +230,27 @@ export const collectFees = async (
       return { success: false, message: "No matching fee records found" };
     }
 
-    // 2. Perform inside a database transaction to ensure atomicity
+    // Distribute discount proportionally across items; adjust last item for rounding
+    const subtotal = collections.reduce((s, c) => s + c.amount, 0);
+    const safeDiscount = Math.min(Math.max(discount, 0), subtotal);
+
+    let distributed = 0;
+    const paidAmounts = collections.map((c, i) => {
+      if (i === collections.length - 1) {
+        return c.amount - (safeDiscount - distributed);
+      }
+      const share = parseFloat(((c.amount / subtotal) * safeDiscount).toFixed(2));
+      distributed += share;
+      return c.amount - share;
+    });
+
     await prisma.$transaction(
-      collections.map((c) =>
+      collections.map((c, i) =>
         prisma.feeCollection.update({
           where: { id: c.id },
           data: {
             status: FeeStatus.PAID,
-            paidAmount: c.amount, // Set paidAmount to standard billed amount
+            paidAmount: Math.max(0, paidAmounts[i]),
             paidAt: new Date(),
             receiptNo,
             receivedById: cashierUsername,
@@ -236,11 +262,29 @@ export const collectFees = async (
     revalidatePath("/fees/collect");
     revalidatePath("/fees/ledger");
     revalidatePath("/fees/reports");
-    
+
     return { success: true, receiptNo };
   } catch (err) {
     console.error(err);
     return { success: false, message: "Failed to confirm payments" };
+  }
+};
+
+// Set or clear a student's individual tuition rate
+export const setCustomTuitionFee = async (
+  studentId: string,
+  amount: number | null
+) => {
+  try {
+    await prisma.student.update({
+      where: { id: studentId },
+      data: { customTuitionFee: amount },
+    });
+    revalidatePath("/fees/collect");
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false };
   }
 };
 

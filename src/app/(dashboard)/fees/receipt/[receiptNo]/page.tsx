@@ -39,7 +39,9 @@ export default async function PaymentReceiptPage({
   const cashierId = collections[0].receivedById || "System Cashier";
 
   // Calculate totals
+  const subtotal = collections.reduce((sum, item) => sum + item.amount, 0);
   const totalPaid = collections.reduce((sum, item) => sum + item.paidAmount, 0);
+  const discount = subtotal - totalPaid;
 
   return (
     <div className="p-4 md:p-8 bg-[#f8fafe] min-h-screen flex flex-col items-center gap-6">
@@ -136,7 +138,7 @@ export default async function PaymentReceiptPage({
                   <td className="py-3 px-3 font-semibold text-gray-400">{index + 1}</td>
                   <td className="py-3 px-3 font-bold">{item.name}</td>
                   <td className="py-3 px-3 text-gray-400 font-medium">{item.month || "One-time Charge"}</td>
-                  <td className="py-3 px-3 text-right font-bold text-gray-800">৳{item.paidAmount.toLocaleString()}</td>
+                  <td className="py-3 px-3 text-right font-bold text-gray-800">৳{item.amount.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -147,12 +149,14 @@ export default async function PaymentReceiptPage({
         <div className="flex flex-col items-end gap-2 border-t border-gray-100 pt-5 my-6 text-xs">
           <div className="flex justify-between w-64 items-center">
             <span className="text-gray-500 font-semibold">Subtotal:</span>
-            <span className="text-gray-700 font-bold">৳{totalPaid.toLocaleString()}</span>
+            <span className="text-gray-700 font-bold">৳{subtotal.toLocaleString()}</span>
           </div>
-          <div className="flex justify-between w-64 items-center">
-            <span className="text-gray-500 font-semibold">Taxes & Surcharges:</span>
-            <span className="text-gray-700 font-bold">৳0</span>
-          </div>
+          {discount > 0 && (
+            <div className="flex justify-between w-64 items-center text-red-500">
+              <span className="font-semibold">Discount / Waiver:</span>
+              <span className="font-bold">− ৳{discount.toLocaleString()}</span>
+            </div>
+          )}
           <div className="flex justify-between w-64 items-center border-t border-gray-100 pt-2 text-sm">
             <span className="text-gray-800 font-bold">Net BDT Received:</span>
             <span className="text-base font-extrabold text-lamaSky">৳{totalPaid.toLocaleString()}</span>

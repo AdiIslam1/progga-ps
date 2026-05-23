@@ -1,6 +1,7 @@
 "use client";
 
 import { collectFees } from "@/lib/feeActions";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-toastify";
@@ -13,12 +14,22 @@ interface FeeItem {
   status: "PAID" | "UNPAID" | "PENDING";
 }
 
+interface PaidFeeItem {
+  id: number;
+  name: string;
+  paidAmount: number;
+  month: string | null;
+  paidAt: Date | string | null;
+  receiptNo: string | null;
+}
+
 interface CollectorPortalProps {
   studentId: string;
   studentName: string;
   customTuitionFee: number | null;
   baseClassFee: number;
   unpaidFees: FeeItem[];
+  paidFees: PaidFeeItem[];
   cashierUsername: string;
 }
 
@@ -28,168 +39,260 @@ export default function CollectorPortal({
   customTuitionFee,
   baseClassFee,
   unpaidFees,
+  paidFees,
   cashierUsername,
 }: CollectorPortalProps) {
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [discount, setDiscount] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const toggleSelect = (id: number) => {
+  const toggleSelect = (id: number) =>
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
-  };
 
-  const selectAll = () => {
-    if (selectedIds.length === unpaidFees.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(unpaidFees.map((fee) => fee.id));
-    }
-  };
+  const selectAll = () =>
+    setSelectedIds(
+      selectedIds.length === unpaidFees.length ? [] : unpaidFees.map((f) => f.id)
+    );
 
-  const totalDue = unpaidFees
-    .filter((fee) => selectedIds.includes(fee.id))
-    .reduce((sum, fee) => sum + fee.amount, 0);
+  const subtotal = unpaidFees
+    .filter((f) => selectedIds.includes(f.id))
+    .reduce((sum, f) => sum + f.amount, 0);
+
+  const discountVal = Math.min(Math.max(parseFloat(discount) || 0, 0), subtotal);
+  const totalCollected = subtotal - discountVal;
 
   const handleConfirmPayment = async () => {
     if (selectedIds.length === 0) {
-      toast.error("Please select at least one outstanding fee to pay");
+      toast.error("Select at least one outstanding fee to pay.");
       return;
     }
-
+    if (discountVal > subtotal) {
+      toast.error("Discount cannot exceed the total amount.");
+      return;
+    }
     setLoading(true);
     try {
-      const res = await collectFees(studentId, selectedIds, cashierUsername);
+      const res = await collectFees(studentId, selectedIds, cashierUsername, discountVal);
       if (res.success && res.receiptNo) {
-        toast.success(`Payment verified successfully! Receipt ${res.receiptNo} generated.`);
-        // Redirect to print receipt page
+        toast.success(`Payment confirmed! Receipt ${res.receiptNo} generated.`);
         router.push(`/fees/receipt/${res.receiptNo}`);
       } else {
         toast.error(res.message || "Failed to process payment.");
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("An error occurred during cash collection.");
+    } catch {
+      toast.error("An error occurred during payment.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-6">
-      <div className="flex items-center justify-between border-b border-gray-50 pb-4">
-        <div>
-          <h2 className="text-base font-bold text-gray-800">Outstanding Invoices Ledger</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Select months or one-off items below to record cash payment.</p>
+    <div className="flex flex-col gap-4">
+      {/* ── OUTSTANDING DUES ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+          <div>
+            <h2 className="text-sm font-bold text-gray-800">Outstanding Dues</h2>
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              {unpaidFees.length === 0
+                ? "All clear — no pending payments."
+                : `${unpaidFees.length} unpaid item${unpaidFees.length !== 1 ? "s" : ""}`}
+            </p>
+          </div>
+          {unpaidFees.length > 0 && (
+            <button
+              onClick={selectAll}
+              className="text-xs text-lamaSky hover:text-[#38b1d8] font-bold transition-colors"
+            >
+              {selectedIds.length === unpaidFees.length ? "Deselect All" : "Select All"}
+            </button>
+          )}
         </div>
-        {unpaidFees.length > 0 && (
-          <button
-            onClick={selectAll}
-            className="text-xs text-lamaSky hover:text-[#38b1d8] font-bold transition-colors"
-          >
-            {selectedIds.length === unpaidFees.length ? "Deselect All" : "Select All Dues"}
-          </button>
+
+        {unpaidFees.length === 0 ? (
+          <div className="py-10 flex flex-col items-center gap-2">
+            <div className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center text-green-500">✓</div>
+            <p className="text-xs text-gray-400 font-semibold">No outstanding dues</p>
+          </div>
+        ) : (
+          <>
+            {/* Fee rows */}
+            <div className="divide-y divide-gray-50">
+              {unpaidFees.map((fee) => {
+                const isSelected = selectedIds.includes(fee.id);
+                return (
+                  <div
+                    key={fee.id}
+                    onClick={() => toggleSelect(fee.id)}
+                    className={`flex items-center justify-between px-5 py-3.5 cursor-pointer select-none transition-colors ${
+                      isSelected ? "bg-[#f3fcff]" : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all ${
+                          isSelected ? "bg-lamaSky border-lamaSky" : "border-gray-300 bg-white"
+                        }`}
+                      >
+                        {isSelected && (
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-gray-700">{fee.name}</p>
+                        {fee.month && (
+                          <p className="text-[10px] text-gray-400">Period: {fee.month}</p>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-sm font-extrabold text-gray-800">
+                      ৳{fee.amount.toLocaleString()}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Payment footer */}
+            <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/50 flex flex-col gap-3">
+              {customTuitionFee !== null && baseClassFee > 0 && (
+                <div className="flex justify-between items-center text-xs text-amber-700 bg-amber-50 px-3 py-1.5 rounded-xl">
+                  <span>Custom tuition active:</span>
+                  <span className="font-bold">
+                    ৳{customTuitionFee}/mo{" "}
+                    <span className="font-normal text-amber-500">(default ৳{baseClassFee})</span>
+                  </span>
+                </div>
+              )}
+
+              {/* Totals */}
+              <div className="flex flex-col gap-1.5 text-xs">
+                <div className="flex justify-between text-gray-500">
+                  <span>{selectedIds.length} item{selectedIds.length !== 1 ? "s" : ""} selected</span>
+                  <span className="font-semibold text-gray-700">৳{subtotal.toLocaleString()}</span>
+                </div>
+
+                {/* Discount row */}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-gray-500 flex-shrink-0">Discount (optional)</span>
+                  <div className="relative w-36">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-semibold">৳</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max={subtotal}
+                      placeholder="0"
+                      value={discount}
+                      onChange={(e) => setDiscount(e.target.value)}
+                      disabled={selectedIds.length === 0}
+                      className="pl-6 w-full ring-1 ring-gray-200 py-1.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-lamaSky transition-all disabled:opacity-40 text-right pr-2"
+                    />
+                  </div>
+                </div>
+
+                {discountVal > 0 && (
+                  <div className="flex justify-between text-red-500 font-semibold">
+                    <span>Discount</span>
+                    <span>− ৳{discountVal.toLocaleString()}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-1">
+                  <span className="font-bold text-gray-700 text-sm">Total Collected</span>
+                  <span className="text-lg font-extrabold text-gray-900">
+                    <span className="text-sm text-lamaSky font-bold">৳</span>
+                    {totalCollected.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleConfirmPayment}
+                disabled={loading || selectedIds.length === 0}
+                className="w-full bg-lamaSky hover:bg-[#38b1d8] text-white font-bold py-3 px-4 rounded-xl transition-all text-sm shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Processing…
+                  </>
+                ) : (
+                  "Confirm Payment & Print Receipt"
+                )}
+              </button>
+            </div>
+          </>
         )}
       </div>
 
-      {unpaidFees.length === 0 ? (
-        <div className="py-8 text-center flex flex-col items-center justify-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-500 text-lg">✓</div>
-          <p className="text-gray-500 font-bold text-sm">All Clear! No Outstanding Dues</p>
-          <p className="text-xs text-gray-400">This student has cleared all scheduled tuition months and dynamic fees.</p>
+      {/* ── PAYMENT HISTORY ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-50">
+          <h2 className="text-sm font-bold text-gray-800">Payment History</h2>
+          <p className="text-[11px] text-gray-400 mt-0.5">
+            {paidFees.length === 0
+              ? "No payments recorded yet."
+              : `${paidFees.length} paid transaction${paidFees.length !== 1 ? "s" : ""}`}
+          </p>
         </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {/* Fee Checklist Grid */}
-          <div className="max-h-80 overflow-y-auto pr-1 flex flex-col gap-2.5">
-            {unpaidFees.map((fee) => {
-              const isSelected = selectedIds.includes(fee.id);
-              return (
-                <div
-                  key={fee.id}
-                  onClick={() => toggleSelect(fee.id)}
-                  className={`p-3.5 rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-between select-none ${
-                    isSelected
-                      ? "border-lamaSky bg-[#f3fcff] shadow-sm"
-                      : "border-gray-100 hover:border-gray-200 bg-gray-50/50 hover:bg-gray-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Checkbox circle */}
-                    <div
-                      className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all duration-200 ${
-                        isSelected
-                          ? "bg-lamaSky border-lamaSky text-white font-bold"
-                          : "border-gray-300 bg-white"
-                      }`}
-                    >
-                      {isSelected && (
-                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-gray-700">{fee.name}</p>
-                      {fee.month && (
-                        <p className="text-[10px] text-gray-400 font-medium">Billing Period: {fee.month}</p>
-                      )}
-                    </div>
+
+        {paidFees.length === 0 ? (
+          <div className="py-10 flex flex-col items-center gap-2">
+            <p className="text-xs text-gray-400">No payment history yet.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-50">
+            {paidFees.map((fee) => (
+              <div
+                key={fee.id}
+                className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
                   </div>
-
-                  <span className="text-sm font-extrabold text-gray-800">
-                    ৳{fee.amount.toLocaleString()}
-                  </span>
+                  <div>
+                    <p className="text-xs font-bold text-gray-700">{fee.name}</p>
+                    <p className="text-[10px] text-gray-400">
+                      {fee.month ? `Period: ${fee.month} · ` : ""}
+                      {fee.paidAt
+                        ? new Date(fee.paidAt).toLocaleDateString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : ""}
+                    </p>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-
-          {/* Payment Summary Footer */}
-          <div className="border-t border-gray-100 pt-4 mt-2 flex flex-col gap-3">
-            <div className="flex justify-between items-center text-xs text-gray-500">
-              <span>Items Selected:</span>
-              <span className="font-semibold text-gray-700">{selectedIds.length} invoice(s)</span>
-            </div>
-
-            {customTuitionFee !== null && (
-              <div className="flex justify-between items-center text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-xl">
-                <span>Tuition Discount / Waiver active:</span>
-                <span className="font-bold">
-                  ৳{customTuitionFee} / mo (Normal: ৳{baseClassFee})
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-extrabold text-gray-800">
+                    ৳{fee.paidAmount.toLocaleString()}
+                  </span>
+                  {fee.receiptNo && (
+                    <Link
+                      href={`/fees/receipt/${fee.receiptNo}`}
+                      className="text-[10px] font-bold text-lamaSky bg-lamaSkyLight px-2.5 py-1 rounded-full hover:bg-lamaSky/20 transition-colors"
+                    >
+                      Receipt
+                    </Link>
+                  )}
+                </div>
               </div>
-            )}
-
-            <div className="flex justify-between items-end border-b border-gray-50 pb-3 mt-1">
-              <span className="text-sm font-bold text-gray-700">Total Cash Received:</span>
-              <span className="text-xl font-extrabold text-gray-900 flex items-baseline gap-0.5">
-                <span className="text-sm text-lamaSky font-bold">৳</span>
-                {totalDue.toLocaleString()}
-              </span>
-            </div>
-
-            <button
-              onClick={handleConfirmPayment}
-              disabled={loading || selectedIds.length === 0}
-              className="w-full bg-lamaSky hover:bg-[#38b1d8] text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 text-sm shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Processing Cash...
-                </>
-              ) : (
-                "Confirm Cash & Print Receipt"
-              )}
-            </button>
+            ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
