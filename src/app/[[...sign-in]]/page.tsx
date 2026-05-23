@@ -84,8 +84,8 @@ const LoginPage = () => {
         className="bg-white p-12 rounded-md shadow-2xl flex flex-col gap-2"
       >
         <h1 className="text-xl font-bold flex items-center gap-2">
-          <Image src="/logo.png" alt="" width={24} height={24} />
-          Progga Preparatory School
+          <Image src="/school-logo.jpg" alt="" width={28} height={28} className="rounded-full" />
+          Progga Preparatory and High School
         </h1>
         <h2 className="text-gray-400">Sign in to your account</h2>
         {error ? <p className="text-sm text-red-400">{error}</p> : null}

@@ -92,7 +92,7 @@ export default function CollectorPortal({
   return (
     <div className="flex flex-col gap-4">
       {/* ── OUTSTANDING DUES ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
           <div>
             <h2 className="text-sm font-bold text-gray-800">Outstanding Dues</h2>
@@ -234,7 +234,7 @@ export default function CollectorPortal({
       </div>
 
       {/* ── PAYMENT HISTORY ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
         <div className="px-5 py-4 border-b border-gray-50">
           <h2 className="text-sm font-bold text-gray-800">Payment History</h2>
           <p className="text-[11px] text-gray-400 mt-0.5">

@@ -213,8 +213,9 @@ export default async function ReportCardsPage({
                 <div>
                   {/* SCHOOL HEADER */}
                   <div className="flex flex-col items-center text-center pb-6 border-b border-gray-100">
+                    <img src="/school-logo.jpg" alt="School Logo" className="w-14 h-14 rounded-full object-cover mb-2" />
                     <h2 className="text-2xl font-black text-gray-800 uppercase tracking-wide">
-                      Bornomala High School
+                      Progga Preparatory and High School
                     </h2>
                     <p className="text-xs text-gray-400 mt-1">
                       Dhaka, Bangladesh • Academic Report Card
@@ -317,7 +318,7 @@ export default async function ReportCardsPage({
 
                 {/* STATEMENT PRINT NOTE */}
                 <p className="text-[9px] text-gray-300 italic text-center mt-12 border-t border-gray-50 pt-3 select-none">
-                  Generated electronically via Bornomala School Result Suite. Board standard grading applied.
+                  Generated electronically via Progga Preparatory and High School Result Suite. Board standard grading applied.
                 </p>
               </div>
             );

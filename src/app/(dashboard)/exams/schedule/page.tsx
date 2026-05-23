@@ -228,13 +228,14 @@ export default async function ExamSchedulePage({
                 >
                   {/* WATERMARK */}
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-gray-50 font-black text-[25px] tracking-widest uppercase rotate-12 select-none pointer-events-none opacity-40">
-                    Bornomala Exam
+                    Progga Preparatory and High School Exam
                   </div>
 
                   {/* ADMIT HEADER */}
                   <div className="flex flex-col items-center text-center pb-3 border-b-2 border-gray-100 print:border-black">
+                    <img src="/school-logo.jpg" alt="School Logo" className="w-10 h-10 rounded-full object-cover mb-1" />
                     <h3 className="text-sm font-black text-gray-800 uppercase tracking-wide">
-                      Bornomala High School
+                      Progga Preparatory and High School
                     </h3>
                     <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
                       Admit Card • Board Syllabus Terminal Exams

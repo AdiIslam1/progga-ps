@@ -66,8 +66,9 @@ export default async function PaymentReceiptPage({
 
         {/* SCHOOL HEADER */}
         <div className="flex flex-col items-center text-center pb-6 border-b border-gray-100">
+          <img src="/school-logo.jpg" alt="School Logo" className="w-16 h-16 rounded-full object-cover mb-2" />
           <h1 className="text-xl md:text-2xl font-black text-gray-800 uppercase tracking-wide">
-            Bornomala High School
+            Progga Preparatory and High School
           </h1>
           <p className="text-xs text-gray-400 mt-1">
             Chashara, Narayanganj, Dhaka, Bangladesh • Phone: +880 1711-000000
@@ -191,7 +192,7 @@ export default async function PaymentReceiptPage({
 
         {/* PRINT WATERMARK NOTES */}
         <p className="text-[9px] text-gray-300 italic text-center mt-12 border-t border-gray-50 pt-3 select-none">
-          This is an electronically generated statement. Generated via Bornomala SMS & Accounting Management System.
+          This is an electronically generated statement. Generated via Progga Preparatory and High School Management System.
         </p>
 
       </div>

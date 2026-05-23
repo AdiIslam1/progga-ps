@@ -16,13 +16,13 @@ export default function DashboardLayout({
           href="/"
           className="flex items-center justify-center lg:justify-start gap-2"
         >
-          <Image src="/logo.png" alt="logo" width={32} height={32} />
+          <Image src="/school-logo.jpg" alt="logo" width={32} height={32} className="rounded-full" />
           <span className="hidden lg:block font-bold">Progga Preparatory School</span>
         </Link>
         <Menu />
       </div>
       {/* RIGHT */}
-      <div className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%] bg-[#F7F8FA] overflow-scroll flex flex-col">
+      <div className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%] bg-[#F7F8FA] overflow-scroll flex flex-col pb-8">
         <Navbar />
         {children}
       </div>
