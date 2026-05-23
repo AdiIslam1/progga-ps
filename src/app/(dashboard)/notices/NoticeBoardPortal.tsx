@@ -268,7 +268,7 @@ export default function NoticeBoardPortal({
                 ⚡ Template Suggestion
               </h3>
               <p className="text-xs text-amber-900/80 italic leading-relaxed m-0">
-                &quot;Dear Guardian, your student was recorded ABSENT on May 24th Bornomala High School. Please verify.&quot; (106 characters - 1 English SMS segment)
+                &quot;Dear Guardian, your student was recorded ABSENT on May 24th Progga Preparatory and High School. Please verify.&quot; (106 characters - 1 English SMS segment)
               </p>
             </div>
           </div>

@@ -2,9 +2,9 @@
 
 import prisma from "./prisma";
 import { revalidatePath } from "next/cache";
-import { FeeStatus } from "@prisma/client";
+import { FeePackageType, FeeStatus } from "@prisma/client";
 
-// Create a standard fee package (e.g. Class 1 Monthly Fee)
+// Create a fee package (tuition or other fee template)
 export const createFeePackage = async (
   currentState: any,
   data: {
@@ -12,6 +12,7 @@ export const createFeePackage = async (
     description?: string;
     amount: number;
     classId?: string;
+    type: "TUITION" | "OTHER_FEE";
   }
 ) => {
   try {
@@ -21,15 +22,37 @@ export const createFeePackage = async (
         name: data.name,
         description: data.description || null,
         amount: data.amount,
+        type: data.type as FeePackageType,
         classId: classIdNum,
       },
     });
-
     revalidatePath("/fees/packages");
     return { success: true, error: false };
+  } catch (err: any) {
+    console.error(err);
+    return { success: false, error: true, message: err?.message || "Unknown error" };
+  }
+};
+
+// Update an existing fee package
+export const updateFeePackage = async (
+  id: number,
+  data: { name: string; amount: number; description?: string }
+) => {
+  try {
+    await prisma.feePackage.update({
+      where: { id },
+      data: {
+        name: data.name,
+        amount: data.amount,
+        description: data.description || null,
+      },
+    });
+    revalidatePath("/fees/packages");
+    return { success: true };
   } catch (err) {
     console.error(err);
-    return { success: false, error: true };
+    return { success: false };
   }
 };
 

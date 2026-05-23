@@ -186,7 +186,7 @@ export default async function FeeLedgerPage({
       </div>
 
       {/* LEDGER DATA TABLE */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
         {collections.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
             <span className="text-2xl">📋</span>

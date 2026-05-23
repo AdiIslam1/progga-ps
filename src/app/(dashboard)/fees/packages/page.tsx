@@ -1,120 +1,200 @@
 import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth-server";
+import { redirect } from "next/navigation";
 import PackageForm from "./PackageForm";
 import DeletePackageBtn from "./DeletePackageBtn";
 import BillPackageBtn from "./BillPackageBtn";
-import { auth } from "@/lib/auth-server";
-import { redirect } from "next/navigation";
+import EditPackageBtn from "./EditPackageBtn";
 
 export default async function FeePackagesPage() {
   const { role } = await auth();
+  if (role !== "admin") redirect("/");
 
-  // Route protection - Only Admin can access Fee Packages list & creator
-  if (role !== "admin") {
-    redirect("/");
+  const currentYear = new Date().getFullYear();
+
+  const packages = await prisma.feePackage.findMany({
+    include: { class: { select: { name: true } } },
+    orderBy: { id: "desc" },
+  });
+
+  const classes = await prisma.class.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+
+  const tuitionPackages = packages.filter((p) => p.type === "TUITION");
+  const otherPackages = packages.filter((p) => p.type === "OTHER_FEE");
+
+  // Fetch billed months for all tuition packages in one query
+  const billedRecords = await prisma.feeCollection.findMany({
+    where: {
+      feePackageId: { in: tuitionPackages.map((p) => p.id) },
+      month: { not: null },
+    },
+    select: { feePackageId: true, month: true },
+    distinct: ["feePackageId", "month"],
+  });
+
+  // Map: packageId -> Set of billed months
+  const billedMonthsMap: Record<number, Set<string>> = {};
+  for (const rec of billedRecords) {
+    if (!billedMonthsMap[rec.feePackageId!]) billedMonthsMap[rec.feePackageId!] = new Set();
+    if (rec.month) billedMonthsMap[rec.feePackageId!].add(rec.month);
   }
 
-  // Fetch all packages with their associated classes
-  const packages = await prisma.feePackage.findMany({
-    include: {
-      class: {
-        select: {
-          name: true,
-        },
-      },
-    },
-    orderBy: {
-      id: "desc",
-    },
-  });
-
-  // Fetch classes to pass into the package creator form
-  const classes = await prisma.class.findMany({
-    select: {
-      id: true,
-      name: true,
-    },
-    orderBy: {
-      name: "asc",
-    },
-  });
-
   return (
-    <div className="p-6 flex flex-col gap-6 lg:flex-row min-h-screen bg-[#f8fafe]">
-      {/* LEFT - LIST OF FEE PACKAGES */}
-      <div className="flex-1 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
+    <div className="p-6 flex flex-col lg:flex-row gap-6 min-h-screen bg-[#f8fafe]">
+      {/* ── MAIN CONTENT ── */}
+      <div className="flex-1 flex flex-col gap-8">
+
+        {/* ── SECTION 1: MONTHLY TUITION ── */}
+        <div className="flex flex-col gap-4">
           <div>
-            <h1 className="text-2xl font-extrabold text-gray-800 tracking-tight">Standard Fee Packages</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Manage standard tuition rates and automatic bill packages for different grades.</p>
+            <h2 className="text-xl font-extrabold text-gray-800 tracking-tight">Monthly Tuition</h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Base tuition rates per class. Bill each month individually — custom student rates are applied automatically.
+            </p>
           </div>
-          <span className="bg-lamaSkyLight text-lamaSky font-bold text-xs px-3 py-1.5 rounded-full shadow-sm">
-            {packages.length} Total Packages
-          </span>
+
+          {tuitionPackages.length === 0 ? (
+            <div className="bg-white p-10 rounded-2xl border border-dashed border-gray-200 text-center flex flex-col items-center gap-2">
+              <p className="text-sm font-semibold text-gray-400">No tuition packages yet</p>
+              <p className="text-xs text-gray-400">Use the form on the right to create one per class.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {tuitionPackages.map((pkg) => {
+                const billedMonths = billedMonthsMap[pkg.id] || new Set<string>();
+                return (
+                  <div key={pkg.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-lamaSky" />
+
+                    {/* Card header */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="text-[10px] font-bold bg-lamaSkyLight text-lamaSky px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          {pkg.class ? `Class ${pkg.class.name}` : "School-Wide"}
+                        </span>
+                        <h3 className="text-sm font-bold text-gray-800 mt-2">{pkg.name}</h3>
+                        {pkg.description && (
+                          <p className="text-[11px] text-gray-400 mt-0.5">{pkg.description}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <EditPackageBtn
+                          id={pkg.id}
+                          currentName={pkg.name}
+                          currentAmount={pkg.amount}
+                          currentDescription={pkg.description}
+                        />
+                        <DeletePackageBtn id={pkg.id} name={pkg.name} />
+                      </div>
+                    </div>
+
+                    {/* Base rate */}
+                    <div className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
+                      <span className="text-xs text-gray-500">Base monthly rate</span>
+                      <span className="text-base font-extrabold text-gray-900">
+                        <span className="text-sm text-lamaSky font-bold">৳</span>
+                        {pkg.amount.toLocaleString()}
+                      </span>
+                    </div>
+
+                    {/* Calendar + billing (integrated) */}
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{currentYear} Billing</span>
+                      <BillPackageBtn
+                        id={pkg.id}
+                        name={pkg.name}
+                        amount={pkg.amount}
+                        classId={pkg.classId}
+                        className={pkg.class?.name || null}
+                        isTuition={true}
+                        billedMonths={Array.from(billedMonths)}
+                        currentYear={currentYear}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {packages.length === 0 ? (
-          <div className="bg-white p-12 rounded-2xl border border-dashed border-gray-200 text-center flex flex-col items-center justify-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-lamaYellowLight flex items-center justify-center text-lamaYellow font-bold text-xl">৳</div>
-            <p className="text-gray-500 font-semibold text-sm">No packages created yet</p>
-            <p className="text-xs text-gray-400 max-w-xs">Use the creator form on the right to configure your first standard monthly tuition fee package.</p>
+        {/* ── SECTION 2: OTHER FEE TEMPLATES ── */}
+        <div className="flex flex-col gap-4">
+          <div>
+            <h2 className="text-xl font-extrabold text-gray-800 tracking-tight">Other Fee Templates</h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Reusable templates for one-time charges like sports, picnic, or exam fees.
+            </p>
           </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {packages.map((pkg) => (
-              <div
-                key={pkg.id}
-                className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden"
-              >
-                {/* Visual Accent */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-lamaYellow opacity-80" />
 
-                <div>
-                  <div className="flex items-start justify-between gap-3">
-                    <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${
-                      pkg.class ? "bg-lamaSkyLight text-lamaSky" : "bg-lamaPurpleLight text-lamaPurple"
-                    }`}>
-                      {pkg.class ? `Class ${pkg.class.name}` : "School-Wide"}
-                    </span>
-                    <DeletePackageBtn id={pkg.id} name={pkg.name} />
+          {otherPackages.length === 0 ? (
+            <div className="bg-white p-10 rounded-2xl border border-dashed border-gray-200 text-center flex flex-col items-center gap-2">
+              <p className="text-sm font-semibold text-gray-400">No fee templates yet</p>
+              <p className="text-xs text-gray-400">Create one using the form on the right.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {otherPackages.map((pkg) => (
+                <div key={pkg.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-lamaPurple" />
+
+                  {/* Card header */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-[10px] font-bold bg-lamaPurpleLight text-lamaPurple px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        {pkg.class ? `Class ${pkg.class.name}` : "School-Wide"}
+                      </span>
+                      <h3 className="text-sm font-bold text-gray-800 mt-2">{pkg.name}</h3>
+                      {pkg.description && (
+                        <p className="text-[11px] text-gray-400 mt-0.5">{pkg.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <EditPackageBtn
+                        id={pkg.id}
+                        currentName={pkg.name}
+                        currentAmount={pkg.amount}
+                        currentDescription={pkg.description}
+                      />
+                      <DeletePackageBtn id={pkg.id} name={pkg.name} />
+                    </div>
                   </div>
 
-                  <h3 className="text-base font-bold text-gray-800 mt-2.5 group-hover:text-lamaSky transition-colors duration-250">
-                    {pkg.name}
-                  </h3>
-
-                  {pkg.description && (
-                    <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                      {pkg.description}
-                    </p>
-                  )}
-                </div>
-
-                <div className="border-t border-gray-50 pt-3 mt-4 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400">Monthly Billing Rate</span>
-                    <span className="text-lg font-extrabold text-gray-900 flex items-center gap-0.5">
-                      <span className="text-sm font-semibold text-lamaSky">৳</span>
+                  {/* Amount */}
+                  <div className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
+                    <span className="text-xs text-gray-500">Charge per student</span>
+                    <span className="text-base font-extrabold text-gray-900">
+                      <span className="text-sm text-lamaPurple font-bold">৳</span>
                       {pkg.amount.toLocaleString()}
                     </span>
                   </div>
 
-                  <BillPackageBtn 
+                  {/* Bill button */}
+                  <BillPackageBtn
                     id={pkg.id}
                     name={pkg.name}
                     amount={pkg.amount}
                     classId={pkg.classId}
                     className={pkg.class?.name || null}
+                    isTuition={false}
+                    billedMonths={[]}
+                    currentYear={currentYear}
                   />
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* RIGHT - CREATE PACKAGE SIDEBAR FORM */}
-      <div className="w-full lg:w-96 flex flex-col gap-4">
-        <PackageForm classes={classes} />
+      {/* ── SIDEBAR: Create Form ── */}
+      <div className="w-full lg:w-80 flex-shrink-0">
+        <div className="sticky top-6">
+          <PackageForm classes={classes} />
+        </div>
       </div>
     </div>
   );

@@ -183,6 +183,7 @@ model FeePackage {
   name        String
   description String?
   amount      Float
+  type        FeePackageType  @default(OTHER_FEE)
   classId     Int?
   class       Class?          @relation(fields: [classId], references: [id], onDelete: Cascade)
   collections FeeCollection[]
@@ -265,6 +266,11 @@ enum Day {
   THURSDAY
   FRIDAY
   SAT
+}
+
+enum FeePackageType {
+  TUITION
+  OTHER_FEE
 }
 
 enum FeeStatus {

@@ -105,7 +105,7 @@ export default function AttendanceAnalytics({
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
         <div>
           <h3 className="text-base font-bold text-gray-800">Attendance Log History</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Chronological record of class attendance tracked inside Bornomala portals.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Chronological record of class attendance tracked inside Progga Preparatory and High School portals.</p>
         </div>
 
         {sortedRecords.length === 0 ? (
