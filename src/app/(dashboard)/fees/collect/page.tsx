@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import CollectorPortal from "./CollectorPortal";
 import BillFeeForm from "./BillFeeForm";
-import CustomTuitionEditor from "./CustomTuitionEditor";
 
 export default async function CollectFeesPage({
   searchParams,
@@ -75,7 +74,7 @@ export default async function CollectFeesPage({
                   </span>
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  ID: <span className="font-semibold text-gray-500">{selectedStudent.id}</span>
+                  ID: <span className="font-semibold text-gray-500">{selectedStudent.studentId}</span>
                 </p>
               </div>
             </div>
@@ -102,12 +101,6 @@ export default async function CollectFeesPage({
               />
             </div>
             <div className="flex flex-col gap-4">
-              <CustomTuitionEditor
-                studentId={selectedStudent.id}
-                studentName={`${selectedStudent.name} ${selectedStudent.surname}`}
-                currentCustomFee={selectedStudent.customTuitionFee}
-                baseClassFee={baseClassFee}
-              />
               <BillFeeForm
                 studentId={selectedStudent.id}
                 studentName={`${selectedStudent.name} ${selectedStudent.surname}`}

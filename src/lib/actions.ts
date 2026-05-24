@@ -293,6 +293,7 @@ export const createStudent = async (
         classId: data.classId,
         guardianName: data.guardianName || null,
         guardianPhone: data.guardianPhone || null,
+        customTuitionFee: data.customTuitionFee !== "" && data.customTuitionFee != null ? Number(data.customTuitionFee) : null,
       },
     });
 
@@ -328,6 +329,7 @@ export const updateStudent = async (
         classId: data.classId,
         guardianName: data.guardianName || null,
         guardianPhone: data.guardianPhone || null,
+        customTuitionFee: data.customTuitionFee !== "" && data.customTuitionFee != null ? Number(data.customTuitionFee) : null,
       },
     });
     revalidatePath("/list/students");

@@ -55,7 +55,7 @@ export default async function PaymentReceiptPage({
       </div>
 
       {/* RECEIPT PAPER WRAPPER */}
-      <div className="w-full max-w-2xl bg-white p-8 md:p-10 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden print:shadow-none print:border-none print:p-0 print:m-0">
+      <div className="w-full max-w-2xl bg-white p-8 md:p-10 rounded-2xl border border-gray-100 shadow-sm relative print:shadow-none print:border-none print:p-0 print:m-0">
         
         {/* TOP DECORATIVE BANNER (HIDDEN ON PRINT) */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-lamaSky to-lamaYellow print:hidden" />
@@ -109,10 +109,6 @@ export default async function PaymentReceiptPage({
           </div>
           <div className="flex flex-col">
             <span className="text-gray-400 font-medium">Student ID</span>
-            <span className="text-gray-800 font-bold mt-0.5">{student.id}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-gray-400 font-medium">Username</span>
             <span className="text-gray-800 font-bold mt-0.5 font-mono">{student.studentId}</span>
           </div>
         </div>

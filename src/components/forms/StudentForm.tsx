@@ -243,6 +243,24 @@ const StudentForm = ({
             )}
           </div>
 
+          {/* Custom Tuition Fee */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">
+              Custom Tuition Fee <span className="text-gray-400 font-normal">(leave blank for class default)</span>
+            </label>
+            <input
+              type="number"
+              min="0"
+              placeholder="e.g. 800"
+              className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+              {...register("customTuitionFee")}
+              defaultValue={data?.customTuitionFee ?? ""}
+            />
+            {errors.customTuitionFee?.message && (
+              <p className="text-xs text-red-400">{String(errors.customTuitionFee.message)}</p>
+            )}
+          </div>
+
           <InputField
             label="Guardian Name"
             name="guardianName"

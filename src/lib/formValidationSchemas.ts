@@ -59,6 +59,7 @@ export const studentSchema = z.object({
   classId: z.coerce.number().min(1, { message: "Class is required!" }),
   guardianName: z.string().optional(),
   guardianPhone: z.string().optional(),
+  customTuitionFee: z.coerce.number().min(0).optional().or(z.literal("")),
 });
 
 export type StudentSchema = z.infer<typeof studentSchema>;
