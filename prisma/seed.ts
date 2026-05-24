@@ -33,21 +33,11 @@ async function main() {
     },
   });
 
-  // GRADE
-  for (let i = 1; i <= 6; i++) {
-    await prisma.grade.create({
-      data: {
-        level: i,
-      },
-    });
-  }
-
-  // CLASS (Bangladeshi Class 1 to Class 6 equivalents)
+  // CLASS (Class 1 to Class 6)
   for (let i = 1; i <= 6; i++) {
     await prisma.class.create({
       data: {
-        name: `${i}A`, 
-        gradeId: i, 
+        name: `${i}`,
         capacity: 20,
       },
     });
@@ -111,45 +101,35 @@ async function main() {
     });
   }
 
-  // PARENT (Guardians)
-  for (let i = 1; i <= 25; i++) {
-    await prisma.parent.create({
-      data: {
-        id: `parentId${i}`,
-        username: `parentId${i}`,
-        password: defaultPassword,
-        name: `GName ${i}`,
-        surname: `GSurname ${i}`,
-        email: `guardian${i}@example.com`,
-        phone: `0198765432${i}`,
-        address: `Mirpur, Dhaka`,
-      },
-    });
-  }
-
   // STUDENT
+  const year = new Date().getFullYear() % 100; // e.g. 26
+  const classSerials: Record<number, number> = {};
+
   for (let i = 1; i <= 50; i++) {
-    // Custom fees for specific students (scholarships/waivers)
     let customTuitionFee: number | null = null;
-    if (i === 1) customTuitionFee = 800; // Partial waiver
-    if (i === 2) customTuitionFee = 0;   // 100% waiver
-    if (i === 3) customTuitionFee = 500; // Custom sibling discount
+    if (i === 1) customTuitionFee = 800;
+    if (i === 2) customTuitionFee = 0;
+    if (i === 3) customTuitionFee = 500;
+
+    const classLevel = (i % 6) + 1;
+    classSerials[classLevel] = (classSerials[classLevel] || 0) + 1;
+    const studentId = year * 100000 + classLevel * 1000 + classSerials[classLevel];
+    const studentPassword = await bcrypt.hash(studentId.toString(), 10);
 
     await prisma.student.create({
       data: {
-        id: `student${i}`, 
-        username: `student${i}`,
-        password: defaultPassword,
+        id: `student${i}`,
+        studentId,
+        password: studentPassword,
         name: `SName${i}`,
         surname: `SSurname ${i}`,
-        email: `student${i}@bornomala.edu.bd`,
-        phone: `015555555${i}`,
+        phone: `015555555${i < 10 ? `0${i}` : i}`,
         address: `Dhaka, Bangladesh`,
         bloodType: "O-",
         sex: i % 2 === 0 ? UserSex.MALE : UserSex.FEMALE,
-        parentId: `parentId${Math.ceil(i / 2) % 25 || 25}`, 
-        gradeId: (i % 6) + 1, 
-        classId: (i % 6) + 1, 
+        guardianName: `Guardian ${i}`,
+        guardianPhone: `019876543${i < 10 ? `0${i}` : i}`,
+        classId: classLevel,
         customTuitionFee,
         birthday: new Date(2012, 1, i),
       },
@@ -163,8 +143,8 @@ async function main() {
   for (let g = 1; g <= 6; g++) {
     const pkg = await prisma.feePackage.create({
       data: {
-        name: `Class ${g} Standard Tuition Fee`,
-        description: `Regular monthly tuition fees for students of Class ${g}`,
+        name: `Class ${g} Monthly Tuition`,
+        description: `Monthly tuition fee for Class ${g} students`,
         amount: tuitionFeesByGrade[g - 1],
         classId: g,
       },
@@ -197,10 +177,10 @@ async function main() {
   let receiptCounter = 1000;
 
   for (const student of dbStudents) {
-    const gradeLevel = student.gradeId; // 1 to 6
-    const baseTuition = tuitionFeesByGrade[gradeLevel - 1];
+    const classLevel = student.classId; // classId 1–6 matches class name "1"–"6"
+    const baseTuition = tuitionFeesByGrade[classLevel - 1];
     const actualTuition = student.customTuitionFee !== null ? student.customTuitionFee : baseTuition;
-    const standardPkg = packages[gradeLevel - 1];
+    const standardPkg = packages[classLevel - 1];
 
     // Monthly Tuition Fees
     for (let mIdx = 0; mIdx < months.length; mIdx++) {
@@ -279,9 +259,9 @@ async function main() {
   await prisma.notice.create({
     data: {
       title: "Absence Warning Alert",
-      content: "Dear Guardian, your ward SName1 was absent today from the morning assembly and lessons without prior notice. Bornomala HS.",
+      content: "Dear Guardian, your ward SName1 was absent today from the morning assembly and lessons without prior notice. Progga HS.",
       type: NoticeType.SMS,
-      recipientId: "parentId1",
+      recipientId: "student1",
       classId: 1,
     },
   });

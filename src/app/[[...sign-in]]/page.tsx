@@ -73,7 +73,7 @@ const LoginPage = () => {
     setLoading(false);
 
     if (result?.error) {
-      setError("Invalid username or password");
+      setError("Invalid credentials. Students should use their 7-digit Student ID.");
     }
   };
 
@@ -91,7 +91,7 @@ const LoginPage = () => {
         {error ? <p className="text-sm text-red-400">{error}</p> : null}
         <div className="flex flex-col gap-2">
           <label className="text-xs text-gray-500" htmlFor="username">
-            Username
+            Username / Student ID
           </label>
           <input
             id="username"

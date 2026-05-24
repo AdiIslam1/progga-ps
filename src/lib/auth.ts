@@ -39,24 +39,17 @@ export const authOptions: NextAuthOptions = {
           };
         }
 
-        const student = await prisma.student.findUnique({ where: { username } });
-        if (student && (await verifyPassword(password, student.password))) {
-          return {
-            id: student.id,
-            username: student.username,
-            role: "student" as UserRole,
-            name: `${student.name} ${student.surname}`,
-          };
-        }
-
-        const parent = await prisma.parent.findUnique({ where: { username } });
-        if (parent && (await verifyPassword(password, parent.password))) {
-          return {
-            id: parent.id,
-            username: parent.username,
-            role: "parent" as UserRole,
-            name: `${parent.name} ${parent.surname}`,
-          };
+        const studentIdNum = parseInt(username, 10);
+        if (!isNaN(studentIdNum)) {
+          const student = await prisma.student.findUnique({ where: { studentId: studentIdNum } });
+          if (student && (await verifyPassword(password, student.password))) {
+            return {
+              id: student.id,
+              username: student.studentId.toString(),
+              role: "student" as UserRole,
+              name: `${student.name} ${student.surname}`,
+            };
+          }
         }
 
         return null;

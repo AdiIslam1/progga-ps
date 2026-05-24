@@ -201,20 +201,9 @@ export default async function AttendancePage({ searchParams }: PageProps) {
     );
   }
 
-  // Student/Parent View - Personal read-only analytics logs
-  if (role === "student" || role === "parent") {
+  // Student View - Personal read-only analytics logs
+  if (role === "student") {
     let selectedStudentId = userId;
-    let parentStudents: { id: string; name: string; surname: string }[] = [];
-
-    if (role === "parent") {
-      parentStudents = await prisma.student.findMany({
-        where: { parentId: userId },
-        select: { id: true, name: true, surname: true },
-        orderBy: { name: "asc" },
-      });
-
-      selectedStudentId = searchParams.studentId || parentStudents[0]?.id || "";
-    }
 
     // Fetch the target student details
     const student = selectedStudentId
@@ -249,9 +238,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
           <div>
             <h1 className="text-2xl font-extrabold text-gray-800 tracking-tight">Attendance Record</h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              {role === "parent"
-                ? "Track academic session daily presence and class participation levels for your children."
-                : "Your personal daily presence history and visual attendance percentage cards."}
+              Your personal daily presence history and visual attendance percentage cards.
             </p>
           </div>
           <div className="flex items-center gap-2 self-end">
@@ -263,27 +250,6 @@ export default async function AttendancePage({ searchParams }: PageProps) {
             </Link>
           </div>
         </div>
-
-        {/* Parent Student Selector Dropdown */}
-        {role === "parent" && parentStudents.length > 1 && (
-          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-            <label className="text-xs font-bold text-gray-500 whitespace-nowrap">Select Student Profile:</label>
-            <form method="GET" action="/list/attendance" className="flex-1 max-w-xs">
-              <select
-                name="studentId"
-                onChange={(e) => e.target.form?.submit()}
-                className="ring-1 ring-gray-200 p-2 rounded-xl text-xs w-full outline-none focus:ring-2 focus:ring-lamaSky transition-all bg-white font-medium text-gray-700"
-                defaultValue={selectedStudentId}
-              >
-                {parentStudents.map((std) => (
-                  <option key={std.id} value={std.id}>
-                    {std.name} {std.surname} ({std.id})
-                  </option>
-                ))}
-              </select>
-            </form>
-          </div>
-        )}
 
         {/* Analytics & Table Rendering */}
         {student ? (

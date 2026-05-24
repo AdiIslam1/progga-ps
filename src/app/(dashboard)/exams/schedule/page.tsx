@@ -46,19 +46,6 @@ export default async function ExamSchedulePage({
         },
       },
     };
-  } else if (role === "parent") {
-    // For parents, filter by their children's classes
-    const kids = await prisma.student.findMany({
-      where: { parentId: userId },
-      select: { classId: true },
-    });
-    scheduleQuery = {
-      exam: {
-        lesson: {
-          classId: { in: kids.map((k) => k.classId) },
-        },
-      },
-    };
   } else {
     // Admin/Teacher with no filter: show all
     scheduleQuery = {};
@@ -79,12 +66,6 @@ export default async function ExamSchedulePage({
   let studentsQuery: any = null;
   if (role === "student") {
     studentsQuery = { id: userId };
-  } else if (role === "parent") {
-    const kids = await prisma.student.findMany({
-      where: { parentId: userId },
-      select: { id: true },
-    });
-    studentsQuery = { id: { in: kids.map((k) => k.id) } };
   } else if (selectedClassId) {
     studentsQuery = { classId: parseInt(selectedClassId) };
   }
@@ -150,8 +131,8 @@ export default async function ExamSchedulePage({
           </div>
         )}
 
-        {/* Individual Student/Parent Print Button */}
-        {(role === "student" || role === "parent") && students.length > 0 && (
+        {/* Individual Student Print Button */}
+        {role === "student" && students.length > 0 && (
           <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
             <span className="text-xs text-gray-500 font-semibold">Download Exam Admit Card:</span>
             <PrintButton />

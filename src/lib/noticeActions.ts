@@ -59,46 +59,43 @@ export const sendNoticeSms = async (
       return { success: false, error: true, message: "Missing title or content" };
     }
 
-    // 1. Resolve recipient parent phone numbers and identities
+    // 1. Resolve recipient guardian phone numbers
     let parentContacts: { name: string; phone: string; studentName: string }[] = [];
 
     if (data.target === "STUDENT" && data.studentId) {
-      const student = await prisma.student.findUnique({
-        where: { id: data.studentId },
-        include: { parent: true },
-      });
-      if (student && student.parent.phone) {
+      const student = await prisma.student.findUnique({ where: { id: data.studentId } });
+      if (student?.guardianPhone) {
         parentContacts.push({
-          name: `${student.parent.name} ${student.parent.surname}`,
-          phone: student.parent.phone,
+          name: student.guardianName || "Guardian",
+          phone: student.guardianPhone,
           studentName: `${student.name} ${student.surname}`,
         });
       }
     } else if (data.target === "CLASS" && data.classId) {
       const students = await prisma.student.findMany({
         where: { classId: parseInt(data.classId) },
-        include: { parent: true },
       });
       students.forEach((s) => {
-        if (s.parent.phone) {
+        if (s.guardianPhone) {
           parentContacts.push({
-            name: `${s.parent.name} ${s.parent.surname}`,
-            phone: s.parent.phone,
+            name: s.guardianName || "Guardian",
+            phone: s.guardianPhone,
             studentName: `${s.name} ${s.surname}`,
           });
         }
       });
     } else {
       // Broad / All Broadcast
-      const parents = await prisma.parent.findMany({
-        select: { name: true, surname: true, phone: true, students: { select: { name: true, surname: true } } },
+      const students = await prisma.student.findMany({
+        where: { guardianPhone: { not: null } },
+        select: { name: true, surname: true, guardianName: true, guardianPhone: true },
       });
-      parents.forEach((p) => {
-        if (p.phone) {
+      students.forEach((s) => {
+        if (s.guardianPhone) {
           parentContacts.push({
-            name: `${p.name} ${p.surname}`,
-            phone: p.phone,
-            studentName: p.students.length > 0 ? `${p.students[0].name} ${p.students[0].surname}` : "Student",
+            name: s.guardianName || "Guardian",
+            phone: s.guardianPhone,
+            studentName: `${s.name} ${s.surname}`,
           });
         }
       });

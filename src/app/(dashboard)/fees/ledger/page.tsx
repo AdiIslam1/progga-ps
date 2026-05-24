@@ -20,13 +20,6 @@ export default async function FeeLedgerPage({
 
   if (role === "student") {
     studentIds = [userId];
-  } else if (role === "parent") {
-    // Parent can see all their children's transactions
-    const children = await prisma.student.findMany({
-      where: { parentId: userId },
-      select: { id: true },
-    });
-    studentIds = children.map((c) => c.id);
   }
 
   // Construct search and status filter query for Prisma

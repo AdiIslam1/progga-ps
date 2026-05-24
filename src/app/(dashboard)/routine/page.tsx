@@ -31,12 +31,6 @@ export default async function ClassRoutinePage({
       select: { classId: true },
     });
     lessonsQuery = { classId: std?.classId || 0 };
-  } else if (role === "parent") {
-    const kids = await prisma.student.findMany({
-      where: { parentId: userId },
-      select: { classId: true },
-    });
-    lessonsQuery = { classId: { in: kids.map((k) => k.classId) } };
   } else if (role === "teacher") {
     // Teachers view their assigned teaching routine
     lessonsQuery = { teacherId: userId };
