@@ -40,22 +40,6 @@ export default async function NoticesPage() {
         { recipientId: userId },
       ],
     };
-  } else if (role === "parent") {
-    // Parents see general notices, class-level notices for any of their children,
-    // or student-specific notices for any of their children
-    const kids = await prisma.student.findMany({
-      where: { parentId: userId },
-      select: { id: true, classId: true },
-    });
-    const kidClassIds = kids.map((k) => k.classId).filter((c): c is number => c !== null);
-    const kidIds = kids.map((k) => k.id);
-    noticeFilter = {
-      OR: [
-        { classId: null },
-        { classId: { in: kidClassIds } },
-        { recipientId: { in: kidIds } },
-      ],
-    };
   }
 
   // Fetch matching sent Notice records

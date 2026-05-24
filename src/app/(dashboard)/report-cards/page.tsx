@@ -30,13 +30,6 @@ export default async function ReportCardsPage({
 
   if (role === "student") {
     studentsQuery = { id: userId };
-  } else if (role === "parent") {
-    // Parents can see report cards for all their kids
-    const kids = await prisma.student.findMany({
-      where: { parentId: userId },
-      select: { id: true },
-    });
-    studentsQuery = { id: { in: kids.map((k) => k.id) } };
   } else {
     // Admin/Teacher selects class
     if (selectedClassId) {
@@ -159,8 +152,8 @@ export default async function ReportCardsPage({
           </div>
         )}
 
-        {/* Print trigger for parents/students */}
-        {(role === "student" || role === "parent") && students.length > 0 && (
+        {/* Print trigger for students */}
+        {role === "student" && students.length > 0 && (
           <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
             <span className="text-xs text-gray-500 font-semibold">Print terminal card for records:</span>
             <PrintButton />

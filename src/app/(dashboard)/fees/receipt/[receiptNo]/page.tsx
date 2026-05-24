@@ -19,10 +19,7 @@ export default async function PaymentReceiptPage({
     },
     include: {
       student: {
-        include: {
-          class: true,
-          parent: true,
-        },
+        include: { class: true },
       },
     },
   });
@@ -31,9 +28,8 @@ export default async function PaymentReceiptPage({
     notFound();
   }
 
-  // Get common student, parent, and transaction meta
+  // Get common student and transaction meta
   const student = collections[0].student;
-  const parent = student.parent;
   const receiptNo = params.receiptNo;
   const paidAt = collections[0].paidAt || new Date();
   const cashierId = collections[0].receivedById || "System Cashier";
@@ -95,8 +91,8 @@ export default async function PaymentReceiptPage({
 
           <div className="flex flex-col gap-1 items-end text-right">
             <span className="text-gray-400 font-semibold uppercase text-[9px] tracking-wider">Guardian/Parent Contact</span>
-            <span className="text-gray-800 font-bold">{parent.name} {parent.surname}</span>
-            <span className="text-gray-500">Phone: {parent.phone}</span>
+            <span className="text-gray-800 font-bold">{student.guardianName || "—"}</span>
+            <span className="text-gray-500">Phone: {student.guardianPhone || "—"}</span>
             <span className="text-gray-500">Address: {student.address}</span>
           </div>
         </div>
@@ -117,7 +113,7 @@ export default async function PaymentReceiptPage({
           </div>
           <div className="flex flex-col">
             <span className="text-gray-400 font-medium">Username</span>
-            <span className="text-gray-800 font-bold mt-0.5">{student.username}</span>
+            <span className="text-gray-800 font-bold mt-0.5 font-mono">{student.studentId}</span>
           </div>
         </div>
 

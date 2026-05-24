@@ -12,7 +12,7 @@ import prisma from "./prisma";
 import { hashPassword } from "./password";
 import { randomUUID } from "crypto";
 
-type CurrentState = { success: boolean; error: boolean };
+type CurrentState = { success: boolean; error: boolean; id?: string };
 
 export const createSubject = async (
   currentState: CurrentState,
@@ -243,11 +243,26 @@ export const deleteTeacher = async (
   }
 };
 
+const generateStudentId = async (classId: number): Promise<number> => {
+  const cls = await prisma.class.findUnique({ where: { id: classId } });
+  if (!cls) throw new Error("Class not found");
+  const classLevel = parseInt(cls.name);
+  if (isNaN(classLevel)) throw new Error("Class name must be a number");
+  const year = new Date().getFullYear() % 100;
+  const prefix = year * 100000 + classLevel * 1000;
+  const last = await prisma.student.findFirst({
+    where: { studentId: { gte: prefix, lt: prefix + 1000 } },
+    orderBy: { studentId: "desc" },
+  });
+  const serial = last ? (last.studentId % 1000) + 1 : 1;
+  if (serial > 999) throw new Error("Student ID limit reached for this class and year");
+  return prefix + serial;
+};
+
 export const createStudent = async (
   currentState: CurrentState,
   data: StudentSchema
 ) => {
-  console.log(data);
   try {
     const classItem = await prisma.class.findUnique({
       where: { id: data.classId },
@@ -258,34 +273,31 @@ export const createStudent = async (
       return { success: false, error: true };
     }
 
-    if (!data.password) {
-      return { success: false, error: true };
-    }
-
-    const hashedPassword = await hashPassword(data.password);
+    const studentId = await generateStudentId(data.classId);
+    const hashedPassword = await hashPassword(studentId.toString());
+    const newId = randomUUID();
 
     await prisma.student.create({
       data: {
-        id: randomUUID(),
+        id: newId,
+        studentId,
         password: hashedPassword,
-        username: data.username,
         name: data.name,
         surname: data.surname,
-        email: data.email || null,
         phone: data.phone || null,
         address: data.address,
         img: data.img || null,
         bloodType: data.bloodType,
         sex: data.sex,
         birthday: data.birthday,
-        gradeId: data.gradeId,
         classId: data.classId,
-        parentId: data.parentId,
+        guardianName: data.guardianName || null,
+        guardianPhone: data.guardianPhone || null,
       },
     });
 
-    // revalidatePath("/list/students");
-    return { success: true, error: false };
+    revalidatePath("/list/students");
+    return { success: true, error: false, id: newId };
   } catch (err) {
     console.log(err);
     return { success: false, error: true };
@@ -300,33 +312,26 @@ export const updateStudent = async (
     return { success: false, error: true };
   }
   try {
-    const studentPasswordUpdate =
-      data.password && data.password !== ""
-        ? { password: await hashPassword(data.password) }
-        : {};
-
     await prisma.student.update({
       where: {
         id: data.id,
       },
       data: {
-        ...studentPasswordUpdate,
-        username: data.username,
         name: data.name,
         surname: data.surname,
-        email: data.email || null,
         phone: data.phone || null,
         address: data.address,
         img: data.img || null,
         bloodType: data.bloodType,
         sex: data.sex,
         birthday: data.birthday,
-        gradeId: data.gradeId,
         classId: data.classId,
-        parentId: data.parentId,
+        guardianName: data.guardianName || null,
+        guardianPhone: data.guardianPhone || null,
       },
     });
-    // revalidatePath("/list/students");
+    revalidatePath("/list/students");
+    revalidatePath(`/list/students/${data.id}`);
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -346,7 +351,7 @@ export const deleteStudent = async (
       },
     });
 
-    // revalidatePath("/list/students");
+    revalidatePath("/list/students");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
