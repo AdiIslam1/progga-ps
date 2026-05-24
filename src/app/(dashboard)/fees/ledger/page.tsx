@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth-server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { FeeStatus } from "@prisma/client";
+import ClickableRow from "@/components/ClickableRow";
 
 export default async function FeeLedgerPage({
   searchParams,
@@ -204,8 +205,13 @@ export default async function FeeLedgerPage({
               </thead>
               <tbody>
                 {collections.map((item) => (
-                  <tr
+                  <ClickableRow
                     key={item.id}
+                    href={
+                      item.status === FeeStatus.PAID && item.receiptNo
+                        ? `/fees/receipt/${item.receiptNo}`
+                        : `/fees/collect?studentId=${item.student.id}`
+                    }
                     className="border-b border-gray-50 text-gray-700 hover:bg-slate-50/50 transition-colors"
                   >
                     <td className="p-4 font-mono font-semibold text-gray-500">
@@ -260,7 +266,7 @@ export default async function FeeLedgerPage({
                         </span>
                       )}
                     </td>
-                  </tr>
+                  </ClickableRow>
                 ))}
               </tbody>
             </table>
