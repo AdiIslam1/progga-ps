@@ -3,6 +3,7 @@ import { z } from "zod";
 export const subjectSchema = z.object({
   id: z.coerce.number().optional(),
   name: z.string().min(1, { message: "Subject name is required!" }),
+  classId: z.coerce.number({ required_error: "Class is required!" }),
   teachers: z.array(z.string()), //teacher ids
 });
 

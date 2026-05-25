@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Prisma, Teacher } from "@prisma/client";
 import Image from "next/image";
+import Link from "next/link";
 import { auth } from "@/lib/auth-server";
 
 type ClassList = Class & { supervisor: Teacher };
@@ -47,18 +48,32 @@ const columns = [
 const renderRow = (item: ClassList) => (
   <tr
     key={item.id}
-    className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+    className="relative border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight cursor-pointer"
   >
-    <td className="flex items-center gap-4 p-4">Class {item.name}</td>
+    <td className="flex items-center gap-4 p-4">
+      <Link href={`/list/classes/${item.id}/subjects`} className="absolute inset-0" />
+      Class {item.name}
+    </td>
     <td className="hidden md:table-cell">{item.capacity}</td>
     <td className="hidden md:table-cell">
-      {item.supervisor.name + " " + item.supervisor.surname}
+      {item.supervisor
+        ? item.supervisor.name + " " + item.supervisor.surname
+        : "—"}
     </td>
     <td>
-      <div className="flex items-center gap-2">
+      <div className="relative z-10 flex items-center gap-2">
         {role === "admin" && (
           <>
-            <FormContainer table="class" type="update" data={item} />
+            <FormContainer
+              table="class"
+              type="update"
+              data={{
+                id: item.id,
+                name: item.name,
+                capacity: item.capacity,
+                supervisorId: item.supervisorId ?? "",
+              }}
+            />
             <FormContainer table="class" type="delete" id={item.id} />
           </>
         )}

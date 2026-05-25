@@ -70,14 +70,19 @@ model Class {
   announcements Announcement[]
   feePackages   FeePackage[]
   notices       Notice[]
+  subjects      Subject[]
 }
 
 model Subject {
   id            Int            @id @default(autoincrement())
-  name          String         @unique
+  name          String
+  classId       Int
+  class         Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
   teachers      Teacher[]
   lessons       Lesson[]
   examSchedules ExamSchedule[]
+
+  @@unique([name, classId])
 }
 
 model Lesson {

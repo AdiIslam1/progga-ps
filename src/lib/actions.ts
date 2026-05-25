@@ -22,6 +22,7 @@ export const createSubject = async (
     await prisma.subject.create({
       data: {
         name: data.name,
+        classId: data.classId,
         teachers: {
           connect: data.teachers.map((teacherId) => ({ id: teacherId })),
         },
