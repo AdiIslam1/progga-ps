@@ -4,48 +4,49 @@ import prisma from "./prisma";
 import { revalidatePath } from "next/cache";
 import { NoticeType } from "@prisma/client";
 
-// Save or update active bulk SMS provider credentials
-export const saveSmsConfig = async (
-  currentState: any,
-  data: {
-    apiUrl: string;
-    apiKey: string;
-    senderId: string;
+// Greenweb API: GET https://api.greenweb.com.bd/api.php?json&token=TOKEN&to=PHONE&message=MESSAGE
+// Success response: { "success": "01812345678", "error": "" }
+// Error response:  { "success": "", "error": "Invalid Number!" }
+async function sendSingleSms(apiUrl: string, token: string, to: string, message: string): Promise<boolean> {
+  try {
+    const params = new URLSearchParams({ token, to, message });
+    const res = await fetch(`${apiUrl}?json&${params.toString()}`, {
+      method: "GET",
+      headers: { "Accept": "application/json" },
+      cache: "no-store",
+    });
+    if (!res.ok) return false;
+    const json = await res.json();
+    return typeof json.success === "string" && json.success.length > 0;
+  } catch {
+    return false;
   }
+}
+
+export const saveSmsConfig = async (
+  _: any,
+  data: { apiUrl: string; apiKey: string; senderId: string }
 ) => {
   try {
     const existing = await prisma.smsConfig.findFirst();
-
     if (existing) {
       await prisma.smsConfig.update({
         where: { id: existing.id },
-        data: {
-          apiUrl: data.apiUrl,
-          apiKey: data.apiKey,
-          senderId: data.senderId,
-        },
+        data: { apiUrl: data.apiUrl, apiKey: data.apiKey, senderId: data.senderId },
       });
     } else {
-      await prisma.smsConfig.create({
-        data: {
-          apiUrl: data.apiUrl,
-          apiKey: data.apiKey,
-          senderId: data.senderId,
-        },
-      });
+      await prisma.smsConfig.create({ data });
     }
-
     revalidatePath("/notices");
-    return { success: true, error: false };
+    return { success: true };
   } catch (err) {
     console.error(err);
-    return { success: false, error: true };
+    return { success: false, message: "Failed to save gateway settings." };
   }
 };
 
-// Send bulk notice / SMS to parent guardians
 export const sendNoticeSms = async (
-  currentState: any,
+  _: any,
   data: {
     title: string;
     content: string;
@@ -56,107 +57,156 @@ export const sendNoticeSms = async (
 ) => {
   try {
     if (!data.title || !data.content) {
-      return { success: false, error: true, message: "Missing title or content" };
+      return { success: false, message: "Title and message are required." };
     }
 
-    // 1. Resolve recipient guardian phone numbers
-    let parentContacts: { name: string; phone: string; studentName: string }[] = [];
+    // Resolve guardian phone numbers based on target scope
+    let contacts: { phone: string }[] = [];
 
     if (data.target === "STUDENT" && data.studentId) {
-      const student = await prisma.student.findUnique({ where: { id: data.studentId } });
-      if (student?.guardianPhone) {
-        parentContacts.push({
-          name: student.guardianName || "Guardian",
-          phone: student.guardianPhone,
-          studentName: `${student.name} ${student.surname}`,
-        });
-      }
+      const student = await prisma.student.findUnique({
+        where: { id: data.studentId },
+        select: { guardianPhone: true },
+      });
+      if (student?.guardianPhone) contacts = [{ phone: student.guardianPhone }];
     } else if (data.target === "CLASS" && data.classId) {
       const students = await prisma.student.findMany({
-        where: { classId: parseInt(data.classId) },
+        where: { classId: parseInt(data.classId), guardianPhone: { not: null } },
+        select: { guardianPhone: true },
       });
-      students.forEach((s) => {
-        if (s.guardianPhone) {
-          parentContacts.push({
-            name: s.guardianName || "Guardian",
-            phone: s.guardianPhone,
-            studentName: `${s.name} ${s.surname}`,
-          });
-        }
-      });
+      contacts = students.map((s) => ({ phone: s.guardianPhone! }));
     } else {
-      // Broad / All Broadcast
       const students = await prisma.student.findMany({
         where: { guardianPhone: { not: null } },
-        select: { name: true, surname: true, guardianName: true, guardianPhone: true },
+        select: { guardianPhone: true },
       });
-      students.forEach((s) => {
-        if (s.guardianPhone) {
-          parentContacts.push({
-            name: s.guardianName || "Guardian",
-            phone: s.guardianPhone,
-            studentName: `${s.name} ${s.surname}`,
-          });
-        }
-      });
+      contacts = students.map((s) => ({ phone: s.guardianPhone! }));
     }
 
-    if (parentContacts.length === 0) {
-      return { success: false, error: true, message: "No recipient phone numbers resolved." };
+    if (contacts.length === 0) {
+      return { success: false, message: "No guardian phone numbers found for the selected target." };
     }
 
-    // 2. Fetch bulk SMS gateway configuration
     const config = await prisma.smsConfig.findFirst();
+    let sentCount = 0;
+    let status = "MOCK";
 
-    // 3. Trigger HTTP request to the active bulk gateway endpoint
-    let apiStatus = "MOCK_FALLBACK";
-
-    if (config && config.apiUrl && config.apiKey) {
-      console.log(`[SMS Gateway Trigger] Connecting to active endpoint: ${config.apiUrl}`);
-      
-      // Perform server-side fetch trigger in background
-      // In Bangladesh, bulk SMS gateways take GET or POST queries:
-      // Constructing request payload dynamically
-      const numbersList = parentContacts.map((c) => c.phone).join(",");
-      const gatewayUrl = `${config.apiUrl}?apikey=${config.apiKey}&senderid=${config.senderId}&contacts=${numbersList}&msg=${encodeURIComponent(data.content)}`;
-
-      try {
-        const response = await fetch(gatewayUrl, { method: "GET" });
-        if (response.ok) {
-          apiStatus = "DELIVERED";
-          console.log("[SMS Gateway Success] Messages successfully pushed to endpoint.");
-        } else {
-          apiStatus = "GATEWAY_ERROR";
-          console.warn("[SMS Gateway Warning] Provider returned non-OK status.");
-        }
-      } catch (gatewayErr) {
-        console.error("[SMS Gateway Error] Fetch connection failed.", gatewayErr);
-        apiStatus = "CONNECTION_FAILED";
-      }
+    if (config?.apiUrl && config?.apiKey) {
+      // Send to all recipients in parallel
+      const results = await Promise.allSettled(
+        contacts.map((c) => sendSingleSms(config.apiUrl, config.apiKey, c.phone, data.content))
+      );
+      sentCount = results.filter((r) => r.status === "fulfilled" && r.value === true).length;
+      status = sentCount === 0 ? "FAILED" : sentCount < contacts.length ? "PARTIAL" : "SENT";
     } else {
-      console.log("[SMS Gateway Sandbox] No provider configuration active. Mock logs generated.");
+      // No gateway configured — log as mock
+      sentCount = 0;
+      status = "MOCK";
     }
 
-    // 4. Save Notice log in database
-    const classIdNum = data.classId ? parseInt(data.classId) : null;
     await prisma.notice.create({
       data: {
         title: data.title,
-        content: `${data.content} [Gateway Status: ${apiStatus}]`,
+        content: data.content,
         type: NoticeType.SMS,
-        classId: classIdNum,
+        classId: data.classId ? parseInt(data.classId) : null,
         recipientId: data.studentId || null,
+        recipientCount: contacts.length,
+        sentCount,
+        status,
       },
     });
 
     revalidatePath("/notices");
+
+    if (status === "MOCK") {
+      return {
+        success: true,
+        message: `No SMS gateway configured. Notice logged for ${contacts.length} recipient(s). Configure the gateway to send real SMS.`,
+      };
+    }
+    if (status === "FAILED") {
+      return { success: false, message: `SMS delivery failed for all ${contacts.length} recipient(s). Check your gateway credentials.` };
+    }
     return {
       success: true,
-      error: false,
-      message: `Announcement sent! Resolved ${parentContacts.length} recipients. Gateway Status: ${apiStatus}`,
+      message: `SMS sent to ${sentCount} of ${contacts.length} guardian(s).${status === "PARTIAL" ? " Some deliveries failed." : ""}`,
     };
   } catch (err) {
     console.error(err);
-    return { success: false, error: true, message: "Failed to dispatch notices." };
+    return { success: false, message: "An unexpected error occurred." };
+  }
+};
+
+// Send personalized absence alerts to guardians of students absent on a given date.
+// Supports {studentName} placeholder in the message template.
+export const sendAbsenceAlerts = async (
+  _: any,
+  data: { dateStr: string; messageTemplate: string }
+) => {
+  try {
+    const date = new Date(data.dateStr);
+    date.setHours(0, 0, 0, 0);
+    const nextDay = new Date(date.getTime() + 24 * 60 * 60 * 1000);
+
+    const absentStudents = await prisma.student.findMany({
+      where: {
+        attendances: {
+          some: {
+            date: { gte: date, lt: nextDay },
+            present: false,
+          },
+        },
+      },
+      select: { id: true, name: true, surname: true, guardianPhone: true },
+    });
+
+    const contacts = absentStudents.filter((s) => s.guardianPhone);
+
+    if (contacts.length === 0) {
+      return { success: false, message: "No absent students found for this date, or none have guardian phone numbers." };
+    }
+
+    const config = await prisma.smsConfig.findFirst();
+    let sentCount = 0;
+    let status = "MOCK";
+
+    if (config?.apiUrl && config?.apiKey) {
+      const results = await Promise.allSettled(
+        contacts.map((s) => {
+          const msg = data.messageTemplate.replace(/\{studentName\}/g, `${s.name} ${s.surname}`);
+          return sendSingleSms(config.apiUrl, config.apiKey, s.guardianPhone!, msg);
+        })
+      );
+      sentCount = results.filter((r) => r.status === "fulfilled" && r.value === true).length;
+      status = sentCount === 0 ? "FAILED" : sentCount < contacts.length ? "PARTIAL" : "SENT";
+    }
+
+    await prisma.notice.create({
+      data: {
+        title: `Absence Alert — ${data.dateStr}`,
+        content: data.messageTemplate,
+        type: NoticeType.SMS,
+        recipientCount: contacts.length,
+        sentCount,
+        status,
+      },
+    });
+
+    revalidatePath("/notices");
+
+    if (status === "MOCK") {
+      return { success: true, message: `${contacts.length} absent student(s) found. No gateway configured — notice logged only.` };
+    }
+    if (status === "FAILED") {
+      return { success: false, message: `Delivery failed for all ${contacts.length} guardian(s). Check gateway credentials.` };
+    }
+    return {
+      success: true,
+      message: `Absence alerts sent to ${sentCount}/${contacts.length} guardian(s).${status === "PARTIAL" ? " Some deliveries failed." : ""}`,
+    };
+  } catch (err) {
+    console.error(err);
+    return { success: false, message: "An unexpected error occurred." };
   }
 };

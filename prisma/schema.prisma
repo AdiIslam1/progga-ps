@@ -191,14 +191,17 @@ model Expense {
 }
 
 model Notice {
-  id          Int        @id @default(autoincrement())
-  title       String
-  content     String
-  date        DateTime   @default(now())
-  type        NoticeType @default(SMS)
-  recipientId String?
-  classId     Int?
-  class       Class?     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  id             Int        @id @default(autoincrement())
+  title          String
+  content        String
+  date           DateTime   @default(now())
+  type           NoticeType @default(SMS)
+  recipientId    String?
+  classId        Int?
+  class          Class?     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  recipientCount Int        @default(0)
+  sentCount      Int        @default(0)
+  status         String     @default("PENDING")
 }
 
 model ExamSchedule {
