@@ -43,23 +43,28 @@ async function main() {
     });
   }
 
-  // SUBJECT
-  const subjectData = [
-    { name: "Bangla" },
-    { name: "English" },
-    { name: "Mathematics" },
-    { name: "Science" },
-    { name: "Bangladesh & Global Studies" },
-    { name: "ICT" },
-    { name: "Religion & Moral Education" },
-    { name: "Physical Education" },
-    { name: "Arts & Crafts" },
-    { name: "Agriculture Studies" },
+  // SUBJECT — each class gets its own set of subjects
+  const subjectNames = [
+    "Bangla",
+    "English",
+    "Mathematics",
+    "Science",
+    "Bangladesh & Global Studies",
+    "ICT",
+    "Religion & Moral Education",
+    "Physical Education",
+    "Arts & Crafts",
+    "Agriculture Studies",
   ];
 
-  for (const subject of subjectData) {
-    await prisma.subject.create({ data: subject });
+  // Classes 1–6, subjects are the same set but scoped per class
+  for (let classId = 1; classId <= 6; classId++) {
+    for (const name of subjectNames) {
+      await prisma.subject.create({ data: { name, classId } });
+    }
   }
+
+  // Subjects are now indexed 1–60 (classId 1: ids 1-10, classId 2: ids 11-20, etc.)
 
   // TEACHER
   for (let i = 1; i <= 15; i++) {
@@ -82,21 +87,25 @@ async function main() {
     });
   }
 
-  // LESSON
+  // LESSON — pick a subject that belongs to the lesson's class
+  // Subject IDs: class 1 → 1-10, class 2 → 11-20, ..., class N → (N-1)*10+1 to N*10
   for (let i = 1; i <= 30; i++) {
+    const lessonClassId = (i % 6) + 1;
+    const subjectOffset = (i % 10) + 1; // 1-10
+    const subjectId = (lessonClassId - 1) * 10 + subjectOffset;
     await prisma.lesson.create({
       data: {
-        name: `Lesson ${i}`, 
+        name: `Lesson ${i}`,
         day: Day[
           Object.keys(Day)[
             Math.floor(Math.random() * Object.keys(Day).length)
           ] as keyof typeof Day
-        ], 
-        startTime: new Date(2026, 4, 22, 9, 0), 
-        endTime: new Date(2026, 4, 22, 10, 30), 
-        subjectId: (i % 10) + 1, 
-        classId: (i % 6) + 1, 
-        teacherId: `teacher${(i % 15) + 1}`, 
+        ],
+        startTime: new Date(2026, 4, 22, 9, 0),
+        endTime: new Date(2026, 4, 22, 10, 30),
+        subjectId,
+        classId: lessonClassId,
+        teacherId: `teacher${(i % 15) + 1}`,
       },
     });
   }
@@ -283,22 +292,19 @@ async function main() {
 
   // EXAMS & SCHEDULES & RESULTS (Adding term details, removing assignment logic)
   for (let i = 1; i <= 10; i++) {
-    const examTerm = i <= 5 ? "HALF_YEARLY" : "FINAL_EXAM";
     const exam = await prisma.exam.create({
       data: {
-        title: `${i <= 5 ? "Half-Yearly" : "Final"} Exam - Subject ${i}`, 
-        startTime: new Date(2026, 5, 10 + i, 10, 0), 
-        endTime: new Date(2026, 5, 10 + i, 13, 0), 
-        term: examTerm,
-        lessonId: (i % 30) + 1, 
+        title: i <= 5 ? "Half Yearly" : "Final Exam",
       },
     });
 
-    // Create schedule
+    const examClassId = (i % 6) + 1;
+    const examSubjectOffset = (i % 10) + 1;
+    const examSubjectId = (examClassId - 1) * 10 + examSubjectOffset;
     await prisma.examSchedule.create({
       data: {
         examId: exam.id,
-        subjectId: (i % 10) + 1,
+        subjectId: examSubjectId,
         date: new Date(2026, 5, 10 + i),
         startTime: new Date(2026, 5, 10 + i, 10, 0),
         endTime: new Date(2026, 5, 10 + i, 13, 0),
@@ -333,12 +339,15 @@ async function main() {
 
   // ATTENDANCE
   for (let i = 1; i <= 10; i++) {
+    const studentClassId = (i % 6) + 1;
+    const subjectOffset = (i % 10) + 1;
+    const attendanceSubjectId = (studentClassId - 1) * 10 + subjectOffset;
     await prisma.attendance.create({
       data: {
-        date: new Date(2026, 4, 22), 
+        date: new Date(2026, 4, 22),
         present: i % 5 !== 0, // Mock 80% attendance rate
-        studentId: `student${i}`, 
-        lessonId: (i % 30) + 1, 
+        studentId: `student${i}`,
+        subjectId: attendanceSubjectId,
       },
     });
   }

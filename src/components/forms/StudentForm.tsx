@@ -4,12 +4,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 import Image from "next/image";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useRef, useState } from "react";
 import { studentSchema, StudentSchema } from "@/lib/formValidationSchemas";
 import { createStudent, updateStudent } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { CldUploadWidget } from "next-cloudinary";
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
@@ -33,11 +32,34 @@ const StudentForm = ({
   });
 
   const [img, setImg] = useState<any>(data?.img ? { secure_url: data.img } : null);
+  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
   const { classes = [] } = relatedData || {};
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const json = await res.json();
+      if (res.ok) {
+        setImg({ secure_url: json.url });
+      } else {
+        toast.error(json.error || "Upload failed");
+      }
+    } catch {
+      toast.error("Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const onSubmit = handleSubmit(async (formData) => {
     setSubmitting(true);
@@ -102,37 +124,26 @@ const StudentForm = ({
               <Image src="/noAvatar.png" alt="" width={64} height={64} className="w-full h-full object-cover" />
             )}
           </div>
-          {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ? (
-            <>
-              <CldUploadWidget
-                uploadPreset="school"
-                onSuccess={(result, { widget }) => {
-                  setImg(result.info);
-                  widget.close();
-                }}
-              >
-                {({ open }) => (
-                  <button
-                    type="button"
-                    onClick={() => open()}
-                    className="flex items-center gap-2 text-sm text-blue-500 hover:text-blue-700 border border-blue-300 hover:border-blue-500 rounded-md px-3 py-2 transition-colors"
-                  >
-                    <Image src="/upload.png" alt="" width={16} height={16} />
-                    {img?.secure_url ? "Change Photo" : "Upload Photo"}
-                  </button>
-                )}
-              </CldUploadWidget>
-              {img?.secure_url && (
-                <button type="button" onClick={() => setImg(null)} className="text-xs text-red-400 hover:text-red-600">
-                  Remove
-                </button>
-              )}
-            </>
-          ) : (
-            <p className="text-xs text-gray-400">
-              Photo upload requires Cloudinary configuration.
-              Set <code className="bg-gray-100 px-1 rounded">NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME</code> in your .env to enable.
-            </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="flex items-center gap-2 text-sm text-blue-500 hover:text-blue-700 border border-blue-300 hover:border-blue-500 rounded-md px-3 py-2 transition-colors disabled:opacity-50"
+          >
+            <Image src="/upload.png" alt="" width={16} height={16} />
+            {uploading ? "Uploading…" : img?.secure_url ? "Change Photo" : "Upload Photo"}
+          </button>
+          {img?.secure_url && (
+            <button type="button" onClick={() => { setImg(null); if (fileInputRef.current) fileInputRef.current.value = ""; }} className="text-xs text-red-400 hover:text-red-600">
+              Remove
+            </button>
           )}
         </div>
 

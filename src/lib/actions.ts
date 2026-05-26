@@ -22,6 +22,7 @@ export const createSubject = async (
     await prisma.subject.create({
       data: {
         name: data.name,
+        classId: data.classId,
         teachers: {
           connect: data.teachers.map((teacherId) => ({ id: teacherId })),
         },
@@ -87,7 +88,10 @@ export const createClass = async (
 ) => {
   try {
     await prisma.class.create({
-      data,
+      data: {
+        ...data,
+        supervisorId: data.supervisorId || null,
+      },
     });
 
     // revalidatePath("/list/class");
@@ -107,7 +111,10 @@ export const updateClass = async (
       where: {
         id: data.id,
       },
-      data,
+      data: {
+        ...data,
+        supervisorId: data.supervisorId || null,
+      },
     });
 
     // revalidatePath("/list/class");
@@ -365,33 +372,11 @@ export const createExam = async (
   currentState: CurrentState,
   data: ExamSchema
 ) => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
   try {
-    // if (role === "teacher") {
-    //   const teacherLesson = await prisma.lesson.findFirst({
-    //     where: {
-    //       teacherId: userId!,
-    //       id: data.lessonId,
-    //     },
-    //   });
-
-    //   if (!teacherLesson) {
-    //     return { success: false, error: true };
-    //   }
-    // }
-
     await prisma.exam.create({
-      data: {
-        title: data.title,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        lessonId: data.lessonId,
-      },
+      data: { title: data.title },
     });
 
-    // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -403,36 +388,12 @@ export const updateExam = async (
   currentState: CurrentState,
   data: ExamSchema
 ) => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
   try {
-    // if (role === "teacher") {
-    //   const teacherLesson = await prisma.lesson.findFirst({
-    //     where: {
-    //       teacherId: userId!,
-    //       id: data.lessonId,
-    //     },
-    //   });
-
-    //   if (!teacherLesson) {
-    //     return { success: false, error: true };
-    //   }
-    // }
-
     await prisma.exam.update({
-      where: {
-        id: data.id,
-      },
-      data: {
-        title: data.title,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        lessonId: data.lessonId,
-      },
+      where: { id: data.id },
+      data: { title: data.title },
     });
 
-    // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -465,9 +426,10 @@ export const deleteExam = async (
   }
 };
 
-// Save bulk student marks for a given exam
+// Save bulk student marks for a given exam and subject
 export const saveBulkResults = async (
   examId: number,
+  subjectId: number,
   results: { studentId: string; score: number }[]
 ) => {
   try {
@@ -481,9 +443,9 @@ export const saveBulkResults = async (
       return { grade: "F", gpa: 0.0 };
     };
 
-    // Find existing results for this exam to decide between update and create
+    // Find existing results for this exam+subject pair
     const existingResults = await prisma.result.findMany({
-      where: { examId },
+      where: { examId, subjectId },
     });
 
     const existingMap = new Map(existingResults.map((r) => [r.studentId, r.id]));
@@ -503,6 +465,7 @@ export const saveBulkResults = async (
             data: {
               studentId: r.studentId,
               examId,
+              subjectId,
               score: r.score,
               grade,
               gpa,
@@ -523,7 +486,7 @@ export const saveBulkResults = async (
 
 // Save bulk student attendance for a given lesson and date
 export const saveBulkAttendance = async (
-  lessonId: number,
+  subjectId: number,
   dateStr: string, // "YYYY-MM-DD"
   attendances: { studentId: string; present: boolean }[]
 ) => {
@@ -531,10 +494,10 @@ export const saveBulkAttendance = async (
     const attendanceDate = new Date(dateStr);
     attendanceDate.setHours(0, 0, 0, 0); // Normalize time boundary
 
-    // Find existing attendance records for this lesson and date
+    // Find existing attendance records for this subject and date
     const existing = await prisma.attendance.findMany({
       where: {
-        lessonId,
+        subjectId,
         date: {
           gte: attendanceDate,
           lt: new Date(attendanceDate.getTime() + 24 * 60 * 60 * 1000),
@@ -557,7 +520,7 @@ export const saveBulkAttendance = async (
           return prisma.attendance.create({
             data: {
               studentId: a.studentId,
-              lessonId,
+              subjectId,
               date: attendanceDate,
               present: a.present,
             },

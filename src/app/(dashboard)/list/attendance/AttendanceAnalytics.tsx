@@ -4,11 +4,8 @@ interface AttendanceRecord {
   id: number;
   date: Date;
   present: boolean;
-  lesson: {
+  subject: {
     name: string;
-    subject: {
-      name: string;
-    };
   };
 }
 
@@ -120,7 +117,6 @@ export default function AttendanceAnalytics({
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-gray-500 font-bold uppercase text-[9px] tracking-wider">
                   <th className="p-3">Date</th>
-                  <th className="p-3">Lesson Name</th>
                   <th className="p-3">Subject</th>
                   <th className="p-3 text-right">Status</th>
                 </tr>
@@ -139,8 +135,7 @@ export default function AttendanceAnalytics({
                         day: "numeric",
                       })}
                     </td>
-                    <td className="p-3 font-semibold text-gray-700">{rec.lesson.name}</td>
-                    <td className="p-3 text-gray-400 font-medium">{rec.lesson.subject.name}</td>
+                    <td className="p-3 font-semibold text-gray-700">{rec.subject.name}</td>
                     <td className="p-3 text-right">
                       {rec.present ? (
                         <span className="text-[10px] text-green-700 font-bold bg-green-50 px-2.5 py-0.5 rounded-full border border-green-100">

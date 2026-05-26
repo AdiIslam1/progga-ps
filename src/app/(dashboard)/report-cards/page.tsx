@@ -1,13 +1,12 @@
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth-server";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import PrintButton from "../fees/receipt/[receiptNo]/PrintButton";
 
 export default async function ReportCardsPage({
   searchParams,
 }: {
-  searchParams: { classId?: string; term?: string; year?: string };
+  searchParams: { classId?: string; examId?: string; year?: string };
 }) {
   const { role, userId } = await auth();
 
@@ -16,52 +15,39 @@ export default async function ReportCardsPage({
   }
 
   const selectedClassId = searchParams.classId;
-  const selectedTerm = searchParams.term || "FIRST_TERM";
   const selectedYear = searchParams.year || "2026";
 
-  // Fetch classes for administrators/teachers to choose from
-  const classes = await prisma.class.findMany({
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
+  const [classes, exams] = await Promise.all([
+    prisma.class.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.exam.findMany({ orderBy: { id: "desc" } }),
+  ]);
 
-  // Determine who we are rendering report cards for
-  let studentsQuery: any = {};
+  // Students auto-select the most recent exam; admin/teacher must pick explicitly
+  const selectedExamId = searchParams.examId
+    ? parseInt(searchParams.examId)
+    : role === "student" ? exams[0]?.id : undefined;
+
+  const selectedExam = exams.find((e) => e.id === selectedExamId);
+
+  // Determine which students to load
+  let studentsQuery: any = null;
 
   if (role === "student") {
     studentsQuery = { id: userId };
-  } else {
-    // Admin/Teacher selects class
-    if (selectedClassId) {
-      studentsQuery = { classId: parseInt(selectedClassId) };
-    } else {
-      // Don't fetch any students yet if no class is selected by admin/teacher
-      studentsQuery = null;
-    }
+  } else if (selectedClassId) {
+    studentsQuery = { classId: parseInt(selectedClassId) };
   }
 
-  // Fetch student profiles and their subject exam results
-  const students = studentsQuery
+  const students = (studentsQuery && selectedExamId)
     ? await prisma.student.findMany({
         where: studentsQuery,
         include: {
           class: true,
           results: {
-            where: {
-              exam: {
-                term: selectedTerm,
-              },
-            },
+            where: { examId: selectedExamId },
             include: {
-              exam: {
-                include: {
-                  lesson: {
-                    include: {
-                      subject: true,
-                    },
-                  },
-                },
-              },
+              exam: true,
+              subject: true,
             },
           },
         },
@@ -88,11 +74,11 @@ export default async function ReportCardsPage({
           <p className="text-sm text-gray-500 mt-0.5">
             {role === "admin" || role === "teacher"
               ? "Bulk print or review terminal result sheets for classes."
-              : "Review your child's terminal GPA results and letter grade distributions."}
+              : "Review your terminal GPA results and letter grade distributions."}
           </p>
         </div>
 
-        {/* Filter Cockpit for Teachers/Admins */}
+        {/* Filter Cockpit for Admin/Teacher */}
         {(role === "admin" || role === "teacher") && (
           <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-end gap-4 justify-between">
             <form id="report-cards-filter-form" method="GET" action="/report-cards" className="grid gap-3 sm:grid-cols-3 flex-1">
@@ -102,7 +88,6 @@ export default async function ReportCardsPage({
                   name="classId"
                   className="ring-1 ring-gray-200 p-2.5 rounded-xl text-xs w-full outline-none focus:ring-2 focus:ring-lamaSky transition-all bg-white"
                   defaultValue={selectedClassId || ""}
-                  required
                 >
                   <option value="">-- Select Class --</option>
                   {classes.map((cls) => (
@@ -114,15 +99,18 @@ export default async function ReportCardsPage({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-gray-500">Term</label>
+                <label className="text-xs font-semibold text-gray-500">Exam</label>
                 <select
-                  name="term"
+                  name="examId"
                   className="ring-1 ring-gray-200 p-2.5 rounded-xl text-xs w-full outline-none focus:ring-2 focus:ring-lamaSky transition-all bg-white"
-                  defaultValue={selectedTerm}
+                  defaultValue={selectedExamId?.toString() || ""}
                 >
-                  <option value="FIRST_TERM">First Term</option>
-                  <option value="HALF_YEARLY">Half-Yearly Exam</option>
-                  <option value="FINAL_EXAM">Final Examination</option>
+                  <option value="">-- Select Exam --</option>
+                  {exams.map((ex) => (
+                    <option key={ex.id} value={ex.id}>
+                      {ex.title}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -169,30 +157,29 @@ export default async function ReportCardsPage({
           </div>
           <h2 className="text-base font-bold text-gray-800">
             {role === "admin" || role === "teacher"
-              ? "Select Class and Term first"
+              ? "Select Class and Exam first"
               : "No Results Published"}
           </h2>
           <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
             {role === "admin" || role === "teacher"
-              ? "Use the cockpit filters above to select class exam results to view/bulk-print."
-              : "Your terminal examinations results have not been generated or published for this term yet."}
+              ? "Use the filters above to select a class and exam, then click Generate Results."
+              : "Your examination results have not been published yet."}
           </p>
         </div>
       ) : (
         <div className="flex flex-col gap-8 print:gap-0">
           {students.map((student) => {
-            // Aggregate subject scores
-            const subjectsScores = student.results.map((r) => {
-              const scoreVal = r.score;
-              const gpa = r.gpa || 0.0;
-              const grade = r.grade || "F";
-              const subjectName = r.exam?.lesson?.subject?.name || "Other";
-              return { subjectName, scoreVal, grade, gpa };
-            });
+            const subjectsScores = student.results.map((r) => ({
+              subjectName: r.subject?.name || "Other",
+              scoreVal: r.score,
+              grade: r.grade || "F",
+              gpa: r.gpa || 0.0,
+            }));
 
-            // Calculate terminal average GPA
             const totalGPA = subjectsScores.reduce((sum, item) => sum + item.gpa, 0);
-            const averageGPA = subjectsScores.length > 0 ? parseFloat((totalGPA / subjectsScores.length).toFixed(2)) : 0.0;
+            const averageGPA = subjectsScores.length > 0
+              ? parseFloat((totalGPA / subjectsScores.length).toFixed(2))
+              : 0.0;
             const finalGrade = getCgpaGrade(averageGPA);
 
             return (
@@ -200,7 +187,6 @@ export default async function ReportCardsPage({
                 key={student.id}
                 className="bg-white p-8 md:p-10 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden print:shadow-none print:border-none print:p-0 print:m-0 print:break-after-page min-h-[297mm] w-full max-w-3xl mx-auto flex flex-col justify-between"
               >
-                {/* Print Accent */}
                 <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#4facfe] print:hidden" />
 
                 <div>
@@ -214,7 +200,7 @@ export default async function ReportCardsPage({
                       Dhaka, Bangladesh • Academic Report Card
                     </p>
                     <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-2 bg-gray-50 px-4 py-1.5 rounded-full inline-block">
-                      {selectedTerm.replace("_", " ")} • Session {selectedYear}
+                      {selectedExam?.title || "Examination"} • Session {selectedYear}
                     </p>
                   </div>
 
@@ -238,9 +224,9 @@ export default async function ReportCardsPage({
                     </div>
                   </div>
 
-                  {/* RESULTS SHEET TABLE */}
+                  {/* RESULTS TABLE */}
                   <div className="my-6">
-                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Marksheet statement</h3>
+                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Marksheet Statement</h3>
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="border-b border-gray-100 bg-gray-50 text-gray-500 font-bold uppercase text-[9px] tracking-wider">
@@ -253,7 +239,9 @@ export default async function ReportCardsPage({
                       <tbody>
                         {subjectsScores.length === 0 ? (
                           <tr>
-                            <td colSpan={4} className="py-6 text-center text-gray-400 italic">No exams recorded for this student.</td>
+                            <td colSpan={4} className="py-6 text-center text-gray-400 italic">
+                              No results recorded for this exam.
+                            </td>
                           </tr>
                         ) : (
                           subjectsScores.map((item, index) => (
@@ -269,7 +257,7 @@ export default async function ReportCardsPage({
                     </table>
                   </div>
 
-                  {/* SUMMARY BOARD METRICS */}
+                  {/* SUMMARY */}
                   <div className="flex flex-col items-end gap-2 border-t border-gray-100 pt-5 my-6 text-xs">
                     <div className="flex justify-between w-64 items-center">
                       <span className="text-gray-500 font-semibold">Total Subjects:</span>
@@ -290,7 +278,7 @@ export default async function ReportCardsPage({
                   </div>
                 </div>
 
-                {/* BOARD SIGNATURES */}
+                {/* SIGNATURES */}
                 <div className="grid grid-cols-3 gap-6 pt-24 text-center text-xs mt-12">
                   <div className="flex flex-col items-center">
                     <div className="w-full border-t border-dashed border-gray-200 pt-2 text-[10px] text-gray-400 uppercase font-semibold">
@@ -309,7 +297,6 @@ export default async function ReportCardsPage({
                   </div>
                 </div>
 
-                {/* STATEMENT PRINT NOTE */}
                 <p className="text-[9px] text-gray-300 italic text-center mt-12 border-t border-gray-50 pt-3 select-none">
                   Generated electronically via Progga Preparatory and High School Result Suite. Board standard grading applied.
                 </p>
@@ -319,7 +306,6 @@ export default async function ReportCardsPage({
         </div>
       )}
 
-      {/* Bulk Print Styles */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
           body, html, main, #__next {

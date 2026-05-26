@@ -27,27 +27,17 @@ export default async function ExamSchedulePage({
   let scheduleQuery: any = {};
   if (selectedClassId) {
     scheduleQuery = {
-      exam: {
-        lesson: {
-          classId: parseInt(selectedClassId),
-        },
-      },
+      subject: { classId: parseInt(selectedClassId) },
     };
   } else if (role === "student") {
-    // For students, filter by their own class
     const std = await prisma.student.findUnique({
       where: { id: userId },
       select: { classId: true },
     });
     scheduleQuery = {
-      exam: {
-        lesson: {
-          classId: std?.classId || 0,
-        },
-      },
+      subject: { classId: std?.classId || 0 },
     };
   } else {
-    // Admin/Teacher with no filter: show all
     scheduleQuery = {};
   }
 
