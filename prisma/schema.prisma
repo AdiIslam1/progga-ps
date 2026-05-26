@@ -81,6 +81,8 @@ model Subject {
   teachers      Teacher[]
   lessons       Lesson[]
   examSchedules ExamSchedule[]
+  results       Result[]
+  attendances   Attendance[]
 
   @@unique([name, classId])
 }
@@ -98,32 +100,27 @@ model Lesson {
   class       Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
   teacherId   String
   teacher     Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  exams       Exam[]
-  attendances Attendance[]
 }
 
 model Exam {
   id            Int            @id @default(autoincrement())
   title         String
-  startTime     DateTime
-  endTime       DateTime
-  term          String         @default("FIRST_TERM")
-  lessonId      Int
-  lesson        Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   results       Result[]
   examSchedules ExamSchedule[]
 }
 
 model Result {
-  id        Int     @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   score     Int
-  gpa       Float?  @default(0.0)
-  grade     String? @default("F")
+  gpa       Float?   @default(0.0)
+  grade     String?  @default("F")
 
   examId    Int?
-  exam      Exam?   @relation(fields: [examId], references: [id], onDelete: Cascade)
+  exam      Exam?    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  subjectId Int?
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   studentId String
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
 
 model Attendance {
@@ -133,8 +130,8 @@ model Attendance {
 
   studentId String
   student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  lessonId  Int
-  lesson    Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 }
 
 model Event {

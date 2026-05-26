@@ -17,7 +17,8 @@ npx prisma generate                     # Regenerate Prisma client after schema 
 
 Start the database (PostgreSQL via Docker):
 ```bash
-docker compose up -d
+docker start postgres_db          # start existing container (preferred)
+docker compose up -d postgres     # first-time or if container was removed
 ```
 
 ## Environment Setup
@@ -71,9 +72,16 @@ src/app/
 
 Form components in `src/components/forms/` use React Hook Form + Zod resolver. They receive a `type` prop (`"create"` | `"update"`) and an optional `data` prop for pre-population. Submission calls the corresponding server action.
 
+The render chain is: `FormContainer` (server, fetches `relatedData`) → `FormModal` (client, renders the trigger button + modal) → specific `*Form` component. Adding a new form requires wiring all three plus a case in `FormContainer`'s `relatedData` switch.
+
+`revalidatePath` calls in `actions.ts` are intentionally commented out — page refreshes are handled via `router.refresh()` inside form components on success.
+
 ### Key Domain Models
 
-- **Academic**: Grade → Class → Subject → Lesson → Exam/ExamSchedule
+- **Academic**: Class → Subject → Lesson → Exam → ExamSchedule
+  - `Exam` is currently tied to a specific `Lesson` (which pins it to one class/subject/teacher)
+  - `ExamSchedule` stores per-subject date/time/room entries and links an `Exam` to a `Subject` directly
+  - `/list/exams` — CRUD list (admin/teacher); `/exams/schedule` — timetable view + printable admit cards
 - **People**: Admin, Teacher, Student, Parent (each has a separate credentials table)
 - **Attendance**: per Lesson, per Student
 - **Fees**: FeePackage → FeeCollection (with `FeeStatus`: PAID/UNPAID/PENDING; double-billing prevention is enforced in `feeActions.ts`)

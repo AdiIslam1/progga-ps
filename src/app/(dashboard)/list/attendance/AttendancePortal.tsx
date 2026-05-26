@@ -17,16 +17,16 @@ interface AttendanceItem {
 }
 
 interface AttendancePortalProps {
-  lessonId: number;
-  lessonTitle: string;
+  subjectId: number;
+  subjectTitle: string;
   date: string;
   students: StudentItem[];
   existingAttendance: AttendanceItem[];
 }
 
 export default function AttendancePortal({
-  lessonId,
-  lessonTitle,
+  subjectId,
+  subjectTitle,
   date,
   students,
   existingAttendance,
@@ -69,9 +69,9 @@ export default function AttendancePortal({
 
     setLoading(true);
     try {
-      const res = await saveBulkAttendance(lessonId, date, payload);
+      const res = await saveBulkAttendance(subjectId, date, payload);
       if (res.success) {
-        toast.success(`Attendance for "${lessonTitle}" saved successfully!`);
+        toast.success(`Attendance for "${subjectTitle}" saved successfully!`);
         router.refresh();
       } else {
         toast.error("Failed to save attendance.");
@@ -96,7 +96,7 @@ export default function AttendancePortal({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-50 pb-5">
         <div>
           <span className="text-[10px] uppercase font-extrabold tracking-wider px-2.5 py-1 bg-lamaSkyLight text-lamaSky rounded-full">
-            Active Lesson: {lessonTitle}
+            Subject: {subjectTitle}
           </span>
           <h2 className="text-base font-bold text-gray-800 mt-2">
             Class Attendance Register - <span className="text-lamaSky">{date}</span>

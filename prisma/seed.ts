@@ -292,23 +292,13 @@ async function main() {
 
   // EXAMS & SCHEDULES & RESULTS (Adding term details, removing assignment logic)
   for (let i = 1; i <= 10; i++) {
-    const examTerm = i <= 5 ? "HALF_YEARLY" : "FINAL_EXAM";
     const exam = await prisma.exam.create({
       data: {
-        title: `${i <= 5 ? "Half-Yearly" : "Final"} Exam - Subject ${i}`, 
-        startTime: new Date(2026, 5, 10 + i, 10, 0), 
-        endTime: new Date(2026, 5, 10 + i, 13, 0), 
-        term: examTerm,
-        lessonId: (i % 30) + 1, 
+        title: i <= 5 ? "Half Yearly" : "Final Exam",
       },
     });
 
-    // Create schedule — lesson's classId determines which subject to use
-    const examLesson = await prisma.lesson.findUnique({
-      where: { id: (i % 30) + 1 },
-      select: { classId: true },
-    });
-    const examClassId = examLesson?.classId ?? 1;
+    const examClassId = (i % 6) + 1;
     const examSubjectOffset = (i % 10) + 1;
     const examSubjectId = (examClassId - 1) * 10 + examSubjectOffset;
     await prisma.examSchedule.create({
@@ -349,12 +339,15 @@ async function main() {
 
   // ATTENDANCE
   for (let i = 1; i <= 10; i++) {
+    const studentClassId = (i % 6) + 1;
+    const subjectOffset = (i % 10) + 1;
+    const attendanceSubjectId = (studentClassId - 1) * 10 + subjectOffset;
     await prisma.attendance.create({
       data: {
-        date: new Date(2026, 4, 22), 
+        date: new Date(2026, 4, 22),
         present: i % 5 !== 0, // Mock 80% attendance rate
-        studentId: `student${i}`, 
-        lessonId: (i % 30) + 1, 
+        studentId: `student${i}`,
+        subjectId: attendanceSubjectId,
       },
     });
   }

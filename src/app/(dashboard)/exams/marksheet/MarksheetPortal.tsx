@@ -21,6 +21,7 @@ interface ResultItem {
 interface MarksheetPortalProps {
   examId: number;
   examTitle: string;
+  subjectId: number;
   students: StudentItem[];
   existingResults: ResultItem[];
 }
@@ -28,6 +29,7 @@ interface MarksheetPortalProps {
 export default function MarksheetPortal({
   examId,
   examTitle,
+  subjectId,
   students,
   existingResults,
 }: MarksheetPortalProps) {
@@ -87,7 +89,7 @@ export default function MarksheetPortal({
 
     setLoading(true);
     try {
-      const res = await saveBulkResults(examId, payload);
+      const res = await saveBulkResults(examId, subjectId, payload);
       if (res.success) {
         toast.success(`Grades for "${examTitle}" recorded successfully!`);
         router.refresh();
