@@ -24,6 +24,7 @@ interface MarksheetPortalProps {
   subjectId: number;
   students: StudentItem[];
   existingResults: ResultItem[];
+  totalMarks: number;
 }
 
 export default function MarksheetPortal({
@@ -32,6 +33,7 @@ export default function MarksheetPortal({
   subjectId,
   students,
   existingResults,
+  totalMarks,
 }: MarksheetPortalProps) {
   const router = useRouter();
   const [scores, setScores] = useState<{ [studentId: string]: string }>({});
@@ -47,28 +49,27 @@ export default function MarksheetPortal({
     setScores(initialScores);
   }, [students, existingResults]);
 
+  const passThreshold = Math.ceil(totalMarks * 0.33);
+
   const handleScoreChange = (studentId: string, val: string) => {
-    // Basic validation: only positive integers up to 100
     if (val === "") {
       setScores((prev) => ({ ...prev, [studentId]: "" }));
       return;
     }
     const parsed = parseInt(val);
-    if (isNaN(parsed) || parsed < 0 || parsed > 100) {
-      return; // Ignore invalid values
-    }
+    if (isNaN(parsed) || parsed < 0 || parsed > totalMarks) return;
     setScores((prev) => ({ ...prev, [studentId]: val }));
   };
 
   const calculateGradeAndGpa = (scoreVal: string) => {
     if (scoreVal === "") return { grade: "-", gpa: "-" };
-    const score = parseInt(scoreVal);
-    if (score >= 80) return { grade: "A+", gpa: "5.0" };
-    if (score >= 70) return { grade: "A", gpa: "4.0" };
-    if (score >= 60) return { grade: "A-", gpa: "3.5" };
-    if (score >= 50) return { grade: "B", gpa: "3.0" };
-    if (score >= 40) return { grade: "C", gpa: "2.0" };
-    if (score >= 33) return { grade: "D", gpa: "1.0" };
+    const pct = (parseInt(scoreVal) / totalMarks) * 100;
+    if (pct >= 80) return { grade: "A+", gpa: "5.0" };
+    if (pct >= 70) return { grade: "A",  gpa: "4.0" };
+    if (pct >= 60) return { grade: "A-", gpa: "3.5" };
+    if (pct >= 50) return { grade: "B",  gpa: "3.0" };
+    if (pct >= 40) return { grade: "C",  gpa: "2.0" };
+    if (pct >= 33) return { grade: "D",  gpa: "1.0" };
     return { grade: "F", gpa: "0.0" };
   };
 
@@ -107,7 +108,7 @@ export default function MarksheetPortal({
   // Compute breakdown metrics
   const scoreEntries = Object.values(scores).filter((v) => v !== "").map((v) => parseInt(v));
   const totalEntered = scoreEntries.length;
-  const passed = scoreEntries.filter((s) => s >= 33).length;
+  const passed = scoreEntries.filter((s) => s >= passThreshold).length;
   const passRate = totalEntered > 0 ? ((passed / totalEntered) * 100).toFixed(0) : "0";
   const average = totalEntered > 0 ? (scoreEntries.reduce((a, b) => a + b, 0) / totalEntered).toFixed(1) : "0";
 
@@ -118,7 +119,7 @@ export default function MarksheetPortal({
         <div className="bg-[#fcfdfa] p-3 rounded-xl border border-gray-100 flex items-center justify-between">
           <div>
             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Average Score</span>
-            <p className="text-lg font-black text-gray-800 mt-0.5">{average} / 100</p>
+            <p className="text-lg font-black text-gray-800 mt-0.5">{average} / {totalMarks}</p>
           </div>
           <span className="text-lg">🎯</span>
         </div>
@@ -145,7 +146,7 @@ export default function MarksheetPortal({
             <tr className="border-b border-gray-100 bg-gray-50 text-gray-500 font-bold uppercase text-[9px] tracking-wider">
               <th className="p-3">Student Name</th>
               <th className="p-3">Student ID</th>
-              <th className="p-3 w-32">Obtained Marks</th>
+              <th className="p-3 w-36">Obtained Marks (/{totalMarks})</th>
               <th className="p-3 w-24">Letter Grade</th>
               <th className="p-3 w-24">Grade Point (GP)</th>
               <th className="p-3 text-right">Status</th>
@@ -155,7 +156,7 @@ export default function MarksheetPortal({
             {students.map((std) => {
               const val = scores[std.id] || "";
               const { grade, gpa } = calculateGradeAndGpa(val);
-              const isFail = val !== "" && parseInt(val) < 33;
+              const isFail = val !== "" && parseInt(val) < passThreshold;
               return (
                 <tr
                   key={std.id}
@@ -170,7 +171,7 @@ export default function MarksheetPortal({
                       type="number"
                       placeholder="Enter Marks"
                       min="0"
-                      max="100"
+                      max={totalMarks}
                       className={`ring-1 p-2 rounded-xl text-xs w-full max-w-24 outline-none focus:ring-2 transition-all font-semibold ${
                         isFail
                           ? "ring-red-200 focus:ring-red-500 bg-red-50/50 text-red-700"

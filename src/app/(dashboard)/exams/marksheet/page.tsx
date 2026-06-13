@@ -37,11 +37,22 @@ export default async function MarksheetPage({
   let students: { id: string; name: string; surname: string }[] = [];
   let existingResults: { studentId: string; score: number; grade: string | null; gpa: number | null }[] = [];
   let currentExam = null;
+  let totalMarks = 100;
 
   if (allSelected) {
-    currentExam = await prisma.exam.findUnique({
-      where: { id: parseInt(selectedExamId) },
+    [currentExam] = await Promise.all([
+      prisma.exam.findUnique({ where: { id: parseInt(selectedExamId) } }),
+    ]);
+
+    const scheduleEntry = await prisma.examSchedule.findFirst({
+      where: {
+        examId: parseInt(selectedExamId),
+        classId: parseInt(selectedClassId),
+        subjectId: parseInt(selectedSubjectId),
+      },
+      select: { totalMarks: true },
     });
+    totalMarks = scheduleEntry?.totalMarks ?? 100;
 
     if (currentExam) {
       [students, existingResults] = await Promise.all([
@@ -151,6 +162,7 @@ export default async function MarksheetPage({
             subjectId={parseInt(selectedSubjectId!)}
             students={students}
             existingResults={existingResults}
+            totalMarks={totalMarks}
           />
         )
       ) : (

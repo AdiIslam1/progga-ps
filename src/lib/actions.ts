@@ -3,11 +3,14 @@
 import { revalidatePath } from "next/cache";
 import {
   ClassSchema,
+  ExamScheduleSchema,
   ExamSchema,
+  LessonSchema,
   StudentSchema,
   SubjectSchema,
   TeacherSchema,
 } from "./formValidationSchemas";
+import { Day } from "@prisma/client";
 import prisma from "./prisma";
 import { hashPassword } from "./password";
 import { randomUUID } from "crypto";
@@ -150,17 +153,13 @@ export const createTeacher = async (
   data: TeacherSchema
 ) => {
   try {
-    if (!data.password) {
-      return { success: false, error: true };
-    }
-
-    const hashedPassword = await hashPassword(data.password);
+    const rawPassword = data.password || data.phone || "12345678";
+    const hashedPassword = await hashPassword(rawPassword);
 
     await prisma.teacher.create({
       data: {
         id: randomUUID(),
         password: hashedPassword,
-        username: data.username,
         name: data.name,
         surname: data.surname,
         email: data.email || null,
@@ -170,6 +169,7 @@ export const createTeacher = async (
         bloodType: data.bloodType,
         sex: data.sex,
         birthday: data.birthday,
+        monthlySalary: data.monthlySalary ? Number(data.monthlySalary) : null,
         subjects: {
           connect: data.subjects?.map((subjectId: string) => ({
             id: parseInt(subjectId),
@@ -205,7 +205,6 @@ export const updateTeacher = async (
       },
       data: {
         ...teacherPasswordUpdate,
-        username: data.username,
         name: data.name,
         surname: data.surname,
         email: data.email || null,
@@ -215,6 +214,7 @@ export const updateTeacher = async (
         bloodType: data.bloodType,
         sex: data.sex,
         birthday: data.birthday,
+        monthlySalary: data.monthlySalary ? Number(data.monthlySalary) : null,
         subjects: {
           set: data.subjects?.map((subjectId: string) => ({
             id: parseInt(subjectId),
@@ -537,3 +537,227 @@ export const saveBulkAttendance = async (
   }
 };
 
+
+// ── LESSON ACTIONS ────────────────────────────────────────────────────────────
+
+const timeToDate = (timeStr: string): Date => {
+  const [h, m] = timeStr.split(":").map(Number);
+  return new Date(2025, 0, 1, h, m, 0);
+};
+
+export const createLesson = async (
+  currentState: { success: boolean; error: boolean; message?: string },
+  data: LessonSchema
+) => {
+  try {
+    const subject = await prisma.subject.findUnique({
+      where: { id: data.subjectId },
+      select: { name: true },
+    });
+    await prisma.lesson.create({
+      data: {
+        name: subject?.name || "Lesson",
+        day: data.day as Day,
+        startTime: timeToDate(data.startTime),
+        endTime: timeToDate(data.endTime),
+        subjectId: data.subjectId,
+        classId: data.classId,
+        teacherId: data.teacherId,
+      },
+    });
+    revalidatePath("/routine");
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true, message: "Failed to create lesson." };
+  }
+};
+
+export const updateLesson = async (
+  currentState: { success: boolean; error: boolean; message?: string },
+  data: LessonSchema
+) => {
+  if (!data.id) return { success: false, error: true };
+  try {
+    const subject = await prisma.subject.findUnique({
+      where: { id: data.subjectId },
+      select: { name: true },
+    });
+    await prisma.lesson.update({
+      where: { id: data.id },
+      data: {
+        name: subject?.name || "Lesson",
+        day: data.day as Day,
+        startTime: timeToDate(data.startTime),
+        endTime: timeToDate(data.endTime),
+        subjectId: data.subjectId,
+        classId: data.classId,
+        teacherId: data.teacherId,
+      },
+    });
+    revalidatePath("/routine");
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true, message: "Failed to update lesson." };
+  }
+};
+
+export const deleteLesson = async (
+  currentState: { success: boolean; error: boolean },
+  formData: FormData
+) => {
+  const id = parseInt(formData.get("id") as string);
+  try {
+    await prisma.lesson.delete({ where: { id } });
+    revalidatePath("/routine");
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true };
+  }
+};
+
+// ── EXAM SCHEDULE ACTIONS ──────────────────────────────────────────────────────
+
+const dateToDateTime = (dateStr: string): Date => new Date(dateStr + "T00:00:00");
+
+export const createExamSchedule = async (
+  currentState: { success: boolean; error: boolean; message?: string },
+  data: ExamScheduleSchema
+) => {
+  try {
+    await prisma.examSchedule.create({
+      data: {
+        examId: data.examId,
+        classId: data.classId,
+        subjectId: data.subjectId,
+        date: dateToDateTime(data.date),
+        startTime: timeToDate(data.startTime),
+        endTime: timeToDate(data.endTime),
+        room: data.room || null,
+        totalMarks: data.totalMarks,
+      },
+    });
+    revalidatePath("/exams/schedule");
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true, message: "Failed to create schedule entry." };
+  }
+};
+
+export const updateExamSchedule = async (
+  currentState: { success: boolean; error: boolean; message?: string },
+  data: ExamScheduleSchema
+) => {
+  if (!data.id) return { success: false, error: true };
+  try {
+    await prisma.examSchedule.update({
+      where: { id: data.id },
+      data: {
+        subjectId: data.subjectId,
+        date: dateToDateTime(data.date),
+        startTime: timeToDate(data.startTime),
+        endTime: timeToDate(data.endTime),
+        room: data.room || null,
+        totalMarks: data.totalMarks,
+      },
+    });
+    revalidatePath("/exams/schedule");
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true, message: "Failed to update schedule entry." };
+  }
+};
+
+export const deleteExamSchedule = async (
+  currentState: { success: boolean; error: boolean },
+  formData: FormData
+) => {
+  const id = parseInt(formData.get("id") as string);
+  try {
+    await prisma.examSchedule.delete({ where: { id } });
+    revalidatePath("/exams/schedule");
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true };
+  }
+};
+
+export const deleteScheduleEntry = async (id: number): Promise<{ success: boolean }> => {
+  try {
+    await prisma.examSchedule.delete({ where: { id } });
+    revalidatePath("/exams/schedule");
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false };
+  }
+};
+
+export const saveBulkSchedule = async (
+  examId: number,
+  classId: number,
+  entries: {
+    subjectId: number;
+    entryId: number | null;
+    date: string;
+    startTime: string;
+    endTime: string;
+    room: string;
+    totalMarks: number;
+  }[]
+): Promise<{ success: boolean }> => {
+  try {
+    for (const entry of entries) {
+      if (!entry.date || !entry.startTime || !entry.endTime) continue;
+
+      const data = {
+        date: dateToDateTime(entry.date),
+        startTime: timeToDate(entry.startTime),
+        endTime: timeToDate(entry.endTime),
+        room: entry.room || null,
+        totalMarks: entry.totalMarks,
+      };
+
+      if (entry.entryId) {
+        await prisma.examSchedule.update({ where: { id: entry.entryId }, data });
+      } else {
+        await prisma.examSchedule.create({
+          data: { examId, classId, subjectId: entry.subjectId, ...data },
+        });
+      }
+    }
+    revalidatePath("/exams/schedule");
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false };
+  }
+};
+
+export const resetPassword = async (
+  role: "teacher" | "student" | "admin",
+  id: string,
+  newPassword: string
+): Promise<{ success: boolean }> => {
+  try {
+    const hashedPassword = await hashPassword(newPassword);
+
+    if (role === "teacher") {
+      await prisma.teacher.update({ where: { id }, data: { password: hashedPassword } });
+    } else if (role === "student") {
+      await prisma.student.update({ where: { id }, data: { password: hashedPassword } });
+    } else {
+      await prisma.admin.update({ where: { id }, data: { password: hashedPassword } });
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false };
+  }
+};

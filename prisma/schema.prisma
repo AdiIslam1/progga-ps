@@ -38,22 +38,24 @@ model Student {
 }
 
 model Teacher {
-  id        String    @id
-  username  String    @unique
-  password  String
-  name      String
-  surname   String
-  email     String?   @unique
-  phone     String?   @unique
-  address   String
-  img       String?
-  bloodType String
-  sex       UserSex
-  createdAt DateTime  @default(now())
-  subjects  Subject[]
-  lessons   Lesson[]
-  classes   Class[]
-  birthday  DateTime
+  id                String              @id
+  teacherId         Int                 @unique @default(autoincrement())
+  password          String
+  name              String
+  surname           String
+  email             String?             @unique
+  phone             String?             @unique
+  address           String
+  img               String?
+  bloodType         String
+  sex               UserSex
+  createdAt         DateTime            @default(now())
+  subjects          Subject[]
+  lessons           Lesson[]
+  classes           Class[]
+  birthday          DateTime
+  monthlySalary     Float?
+  salaryCollections SalaryCollection[]
 }
 
 
@@ -71,6 +73,7 @@ model Class {
   feePackages   FeePackage[]
   notices       Notice[]
   subjects      Subject[]
+  examSchedules ExamSchedule[]
 }
 
 model Subject {
@@ -190,6 +193,20 @@ model Expense {
   category String
 }
 
+model SalaryCollection {
+  id           Int          @id @default(autoincrement())
+  teacherId    String
+  teacher      Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  name         String
+  amount       Float
+  month        String       // e.g. "2026-06"
+  status       SalaryStatus @default(UNPAID)
+  paidAmount   Float        @default(0)
+  paidAt       DateTime?
+  receiptNo    String?      @unique
+  receivedById String?
+}
+
 model Notice {
   id             Int        @id @default(autoincrement())
   title          String
@@ -205,15 +222,18 @@ model Notice {
 }
 
 model ExamSchedule {
-  id        Int      @id @default(autoincrement())
-  examId    Int
-  exam      Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
-  subjectId Int
-  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  date      DateTime
-  startTime DateTime
-  endTime   DateTime
-  room      String?
+  id          Int      @id @default(autoincrement())
+  examId      Int
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  subjectId   Int
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  classId     Int
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  date        DateTime
+  startTime   DateTime
+  endTime     DateTime
+  room        String?
+  totalMarks  Int      @default(100)
 }
 
 model ReportCard {
@@ -257,6 +277,11 @@ enum FeeStatus {
   PAID
   UNPAID
   PENDING
+}
+
+enum SalaryStatus {
+  PAID
+  UNPAID
 }
 
 enum NoticeType {

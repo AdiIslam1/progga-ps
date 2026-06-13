@@ -40,7 +40,7 @@ export default function AttendancePortal({
     const initialMap: { [studentId: string]: boolean } = {};
     students.forEach((std) => {
       const match = existingAttendance.find((a) => a.studentId === std.id);
-      initialMap[std.id] = match ? match.present : true; // Default to present
+      initialMap[std.id] = match ? match.present : false;
     });
     setAttendanceMap(initialMap);
   }, [students, existingAttendance]);
@@ -64,7 +64,7 @@ export default function AttendancePortal({
   const handleSave = async () => {
     const payload = students.map((std) => ({
       studentId: std.id,
-      present: attendanceMap[std.id] ?? true,
+      present: attendanceMap[std.id] ?? false,
     }));
 
     setLoading(true);
@@ -121,7 +121,7 @@ export default function AttendancePortal({
       </div>
 
       {/* METRICS SUMMARY */}
-      <div className="grid gap-4 grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
         <div className="bg-[#fafdfb] p-3.5 rounded-xl border border-gray-50 flex items-center justify-between">
           <div>
             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Present</span>
@@ -151,14 +151,14 @@ export default function AttendancePortal({
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50 text-gray-500 font-bold uppercase text-[9px] tracking-wider">
               <th className="p-3.5">Student Name</th>
-              <th className="p-3.5">Student ID</th>
-              <th className="p-3.5 text-center w-36">Attendance Toggle</th>
-              <th className="p-3.5 text-right w-28">Status Badge</th>
+              <th className="p-3.5 hidden sm:table-cell">Student ID</th>
+              <th className="p-3.5 text-center">Attendance Toggle</th>
+              <th className="p-3.5 text-right">Status Badge</th>
             </tr>
           </thead>
           <tbody>
             {students.map((std) => {
-              const isPresent = attendanceMap[std.id] ?? true;
+              const isPresent = attendanceMap[std.id] ?? false;
               return (
                 <tr
                   key={std.id}
@@ -167,7 +167,7 @@ export default function AttendancePortal({
                   <td className="p-3.5 font-bold text-gray-800">
                     {std.name} {std.surname}
                   </td>
-                  <td className="p-3.5 font-medium text-gray-400">{std.id}</td>
+                  <td className="p-3.5 font-medium text-gray-400 hidden sm:table-cell">{std.id}</td>
                   <td className="p-3.5 text-center">
                     <div className="inline-flex items-center justify-center">
                       <label className="relative inline-flex items-center cursor-pointer">
