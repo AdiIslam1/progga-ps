@@ -29,7 +29,7 @@ function DottedRow({ label, value }: { label: string; value?: string }) {
       <span style={{ flexShrink: 0, fontSize: "9px", fontWeight: 700, color: BLUE, whiteSpace: "nowrap" }}>{label}</span>
       <span style={{
         flex: 1, fontSize: "9px", color: "#1f2937",
-        borderBottom: `1px dotted ${BLUE}66`, paddingBottom: "1px", minWidth: 0,
+        borderBottom: `1px dotted ${BLUE}66`, paddingBottom: "1px", paddingLeft: "4px", minWidth: 0,
       }}>{value ?? ""}</span>
     </div>
   );
@@ -89,7 +89,7 @@ function ReceiptCopy({
       {/* Receipt no + copy label */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
-          <span style={{ fontSize: "9px", fontWeight: 700, color: BLUE }}>নং ঃ</span>
+          <span style={{ fontSize: "9px", fontWeight: 700, color: BLUE }}>নং:</span>
           <span style={{ fontSize: "28px", fontWeight: 900, color: BLUE, lineHeight: 1 }}>{receiptNo}</span>
         </div>
         <div style={{
@@ -100,7 +100,7 @@ function ReceiptCopy({
 
       {/* Student info */}
       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-        <DottedRow label="ছাত্র/ছাত্রীর নাম ঃ" value={`${student.name} ${student.surname}`} />
+        <DottedRow label="ছাত্র/ছাত্রীর নাম:" value={`${student.name} ${student.surname}`} />
         <div style={{ display: "flex", gap: "8px" }}>
           <div style={{ flex: 1 }}><DottedRow label="শ্রেণি" value={`Class ${student.class?.name ?? ""}`} /></div>
           <div style={{ flex: 1 }}><DottedRow label="শাখা" value="" /></div>
@@ -145,7 +145,7 @@ function ReceiptCopy({
       </div>
 
       {/* Amount in words */}
-      <DottedRow label="কথায় ঃ" value={numberToWords(totalPaid)} />
+      <DottedRow label="কথায়:" value={numberToWords(totalPaid)} />
 
       {/* Footer */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "12px", paddingTop: "4px" }}>
