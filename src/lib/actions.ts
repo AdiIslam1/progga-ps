@@ -3,16 +3,19 @@
 import { revalidatePath } from "next/cache";
 import {
   ClassSchema,
+  ExamScheduleSchema,
   ExamSchema,
+  LessonSchema,
   StudentSchema,
   SubjectSchema,
   TeacherSchema,
 } from "./formValidationSchemas";
+import { Day } from "@prisma/client";
 import prisma from "./prisma";
 import { hashPassword } from "./password";
 import { randomUUID } from "crypto";
 
-type CurrentState = { success: boolean; error: boolean };
+type CurrentState = { success: boolean; error: boolean; id?: string };
 
 export const createSubject = async (
   currentState: CurrentState,
@@ -22,6 +25,7 @@ export const createSubject = async (
     await prisma.subject.create({
       data: {
         name: data.name,
+        classId: data.classId,
         teachers: {
           connect: data.teachers.map((teacherId) => ({ id: teacherId })),
         },
@@ -87,7 +91,10 @@ export const createClass = async (
 ) => {
   try {
     await prisma.class.create({
-      data,
+      data: {
+        ...data,
+        supervisorId: data.supervisorId || null,
+      },
     });
 
     // revalidatePath("/list/class");
@@ -107,7 +114,10 @@ export const updateClass = async (
       where: {
         id: data.id,
       },
-      data,
+      data: {
+        ...data,
+        supervisorId: data.supervisorId || null,
+      },
     });
 
     // revalidatePath("/list/class");
@@ -143,17 +153,13 @@ export const createTeacher = async (
   data: TeacherSchema
 ) => {
   try {
-    if (!data.password) {
-      return { success: false, error: true };
-    }
-
-    const hashedPassword = await hashPassword(data.password);
+    const rawPassword = data.password || data.phone || "12345678";
+    const hashedPassword = await hashPassword(rawPassword);
 
     await prisma.teacher.create({
       data: {
         id: randomUUID(),
         password: hashedPassword,
-        username: data.username,
         name: data.name,
         surname: data.surname,
         email: data.email || null,
@@ -163,6 +169,7 @@ export const createTeacher = async (
         bloodType: data.bloodType,
         sex: data.sex,
         birthday: data.birthday,
+        monthlySalary: data.monthlySalary ? Number(data.monthlySalary) : null,
         subjects: {
           connect: data.subjects?.map((subjectId: string) => ({
             id: parseInt(subjectId),
@@ -198,7 +205,6 @@ export const updateTeacher = async (
       },
       data: {
         ...teacherPasswordUpdate,
-        username: data.username,
         name: data.name,
         surname: data.surname,
         email: data.email || null,
@@ -208,6 +214,7 @@ export const updateTeacher = async (
         bloodType: data.bloodType,
         sex: data.sex,
         birthday: data.birthday,
+        monthlySalary: data.monthlySalary ? Number(data.monthlySalary) : null,
         subjects: {
           set: data.subjects?.map((subjectId: string) => ({
             id: parseInt(subjectId),
@@ -243,11 +250,26 @@ export const deleteTeacher = async (
   }
 };
 
+const generateStudentId = async (classId: number): Promise<number> => {
+  const cls = await prisma.class.findUnique({ where: { id: classId } });
+  if (!cls) throw new Error("Class not found");
+  const classLevel = parseInt(cls.name);
+  if (isNaN(classLevel)) throw new Error("Class name must be a number");
+  const year = new Date().getFullYear() % 100;
+  const prefix = year * 100000 + classLevel * 1000;
+  const last = await prisma.student.findFirst({
+    where: { studentId: { gte: prefix, lt: prefix + 1000 } },
+    orderBy: { studentId: "desc" },
+  });
+  const serial = last ? (last.studentId % 1000) + 1 : 1;
+  if (serial > 999) throw new Error("Student ID limit reached for this class and year");
+  return prefix + serial;
+};
+
 export const createStudent = async (
   currentState: CurrentState,
   data: StudentSchema
 ) => {
-  console.log(data);
   try {
     const classItem = await prisma.class.findUnique({
       where: { id: data.classId },
@@ -258,34 +280,32 @@ export const createStudent = async (
       return { success: false, error: true };
     }
 
-    if (!data.password) {
-      return { success: false, error: true };
-    }
-
-    const hashedPassword = await hashPassword(data.password);
+    const studentId = await generateStudentId(data.classId);
+    const hashedPassword = await hashPassword(studentId.toString());
+    const newId = randomUUID();
 
     await prisma.student.create({
       data: {
-        id: randomUUID(),
+        id: newId,
+        studentId,
         password: hashedPassword,
-        username: data.username,
         name: data.name,
         surname: data.surname,
-        email: data.email || null,
         phone: data.phone || null,
         address: data.address,
         img: data.img || null,
         bloodType: data.bloodType,
         sex: data.sex,
         birthday: data.birthday,
-        gradeId: data.gradeId,
         classId: data.classId,
-        parentId: data.parentId,
+        guardianName: data.guardianName || null,
+        guardianPhone: data.guardianPhone || null,
+        customTuitionFee: data.customTuitionFee !== "" && data.customTuitionFee != null ? Number(data.customTuitionFee) : null,
       },
     });
 
-    // revalidatePath("/list/students");
-    return { success: true, error: false };
+    revalidatePath("/list/students");
+    return { success: true, error: false, id: newId };
   } catch (err) {
     console.log(err);
     return { success: false, error: true };
@@ -300,33 +320,27 @@ export const updateStudent = async (
     return { success: false, error: true };
   }
   try {
-    const studentPasswordUpdate =
-      data.password && data.password !== ""
-        ? { password: await hashPassword(data.password) }
-        : {};
-
     await prisma.student.update({
       where: {
         id: data.id,
       },
       data: {
-        ...studentPasswordUpdate,
-        username: data.username,
         name: data.name,
         surname: data.surname,
-        email: data.email || null,
         phone: data.phone || null,
         address: data.address,
         img: data.img || null,
         bloodType: data.bloodType,
         sex: data.sex,
         birthday: data.birthday,
-        gradeId: data.gradeId,
         classId: data.classId,
-        parentId: data.parentId,
+        guardianName: data.guardianName || null,
+        guardianPhone: data.guardianPhone || null,
+        customTuitionFee: data.customTuitionFee !== "" && data.customTuitionFee != null ? Number(data.customTuitionFee) : null,
       },
     });
-    // revalidatePath("/list/students");
+    revalidatePath("/list/students");
+    revalidatePath(`/list/students/${data.id}`);
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -346,7 +360,7 @@ export const deleteStudent = async (
       },
     });
 
-    // revalidatePath("/list/students");
+    revalidatePath("/list/students");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -358,33 +372,11 @@ export const createExam = async (
   currentState: CurrentState,
   data: ExamSchema
 ) => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
   try {
-    // if (role === "teacher") {
-    //   const teacherLesson = await prisma.lesson.findFirst({
-    //     where: {
-    //       teacherId: userId!,
-    //       id: data.lessonId,
-    //     },
-    //   });
-
-    //   if (!teacherLesson) {
-    //     return { success: false, error: true };
-    //   }
-    // }
-
     await prisma.exam.create({
-      data: {
-        title: data.title,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        lessonId: data.lessonId,
-      },
+      data: { title: data.title },
     });
 
-    // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -396,36 +388,12 @@ export const updateExam = async (
   currentState: CurrentState,
   data: ExamSchema
 ) => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
   try {
-    // if (role === "teacher") {
-    //   const teacherLesson = await prisma.lesson.findFirst({
-    //     where: {
-    //       teacherId: userId!,
-    //       id: data.lessonId,
-    //     },
-    //   });
-
-    //   if (!teacherLesson) {
-    //     return { success: false, error: true };
-    //   }
-    // }
-
     await prisma.exam.update({
-      where: {
-        id: data.id,
-      },
-      data: {
-        title: data.title,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        lessonId: data.lessonId,
-      },
+      where: { id: data.id },
+      data: { title: data.title },
     });
 
-    // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -458,9 +426,10 @@ export const deleteExam = async (
   }
 };
 
-// Save bulk student marks for a given exam
+// Save bulk student marks for a given exam and subject
 export const saveBulkResults = async (
   examId: number,
+  subjectId: number,
   results: { studentId: string; score: number }[]
 ) => {
   try {
@@ -474,9 +443,9 @@ export const saveBulkResults = async (
       return { grade: "F", gpa: 0.0 };
     };
 
-    // Find existing results for this exam to decide between update and create
+    // Find existing results for this exam+subject pair
     const existingResults = await prisma.result.findMany({
-      where: { examId },
+      where: { examId, subjectId },
     });
 
     const existingMap = new Map(existingResults.map((r) => [r.studentId, r.id]));
@@ -496,6 +465,7 @@ export const saveBulkResults = async (
             data: {
               studentId: r.studentId,
               examId,
+              subjectId,
               score: r.score,
               grade,
               gpa,
@@ -516,7 +486,7 @@ export const saveBulkResults = async (
 
 // Save bulk student attendance for a given lesson and date
 export const saveBulkAttendance = async (
-  lessonId: number,
+  subjectId: number,
   dateStr: string, // "YYYY-MM-DD"
   attendances: { studentId: string; present: boolean }[]
 ) => {
@@ -524,10 +494,10 @@ export const saveBulkAttendance = async (
     const attendanceDate = new Date(dateStr);
     attendanceDate.setHours(0, 0, 0, 0); // Normalize time boundary
 
-    // Find existing attendance records for this lesson and date
+    // Find existing attendance records for this subject and date
     const existing = await prisma.attendance.findMany({
       where: {
-        lessonId,
+        subjectId,
         date: {
           gte: attendanceDate,
           lt: new Date(attendanceDate.getTime() + 24 * 60 * 60 * 1000),
@@ -550,7 +520,7 @@ export const saveBulkAttendance = async (
           return prisma.attendance.create({
             data: {
               studentId: a.studentId,
-              lessonId,
+              subjectId,
               date: attendanceDate,
               present: a.present,
             },
@@ -567,3 +537,227 @@ export const saveBulkAttendance = async (
   }
 };
 
+
+// ── LESSON ACTIONS ────────────────────────────────────────────────────────────
+
+const timeToDate = (timeStr: string): Date => {
+  const [h, m] = timeStr.split(":").map(Number);
+  return new Date(2025, 0, 1, h, m, 0);
+};
+
+export const createLesson = async (
+  currentState: { success: boolean; error: boolean; message?: string },
+  data: LessonSchema
+) => {
+  try {
+    const subject = await prisma.subject.findUnique({
+      where: { id: data.subjectId },
+      select: { name: true },
+    });
+    await prisma.lesson.create({
+      data: {
+        name: subject?.name || "Lesson",
+        day: data.day as Day,
+        startTime: timeToDate(data.startTime),
+        endTime: timeToDate(data.endTime),
+        subjectId: data.subjectId,
+        classId: data.classId,
+        teacherId: data.teacherId,
+      },
+    });
+    revalidatePath("/routine");
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true, message: "Failed to create lesson." };
+  }
+};
+
+export const updateLesson = async (
+  currentState: { success: boolean; error: boolean; message?: string },
+  data: LessonSchema
+) => {
+  if (!data.id) return { success: false, error: true };
+  try {
+    const subject = await prisma.subject.findUnique({
+      where: { id: data.subjectId },
+      select: { name: true },
+    });
+    await prisma.lesson.update({
+      where: { id: data.id },
+      data: {
+        name: subject?.name || "Lesson",
+        day: data.day as Day,
+        startTime: timeToDate(data.startTime),
+        endTime: timeToDate(data.endTime),
+        subjectId: data.subjectId,
+        classId: data.classId,
+        teacherId: data.teacherId,
+      },
+    });
+    revalidatePath("/routine");
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true, message: "Failed to update lesson." };
+  }
+};
+
+export const deleteLesson = async (
+  currentState: { success: boolean; error: boolean },
+  formData: FormData
+) => {
+  const id = parseInt(formData.get("id") as string);
+  try {
+    await prisma.lesson.delete({ where: { id } });
+    revalidatePath("/routine");
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true };
+  }
+};
+
+// ── EXAM SCHEDULE ACTIONS ──────────────────────────────────────────────────────
+
+const dateToDateTime = (dateStr: string): Date => new Date(dateStr + "T00:00:00");
+
+export const createExamSchedule = async (
+  currentState: { success: boolean; error: boolean; message?: string },
+  data: ExamScheduleSchema
+) => {
+  try {
+    await prisma.examSchedule.create({
+      data: {
+        examId: data.examId,
+        classId: data.classId,
+        subjectId: data.subjectId,
+        date: dateToDateTime(data.date),
+        startTime: timeToDate(data.startTime),
+        endTime: timeToDate(data.endTime),
+        room: data.room || null,
+        totalMarks: data.totalMarks,
+      },
+    });
+    revalidatePath("/exams/schedule");
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true, message: "Failed to create schedule entry." };
+  }
+};
+
+export const updateExamSchedule = async (
+  currentState: { success: boolean; error: boolean; message?: string },
+  data: ExamScheduleSchema
+) => {
+  if (!data.id) return { success: false, error: true };
+  try {
+    await prisma.examSchedule.update({
+      where: { id: data.id },
+      data: {
+        subjectId: data.subjectId,
+        date: dateToDateTime(data.date),
+        startTime: timeToDate(data.startTime),
+        endTime: timeToDate(data.endTime),
+        room: data.room || null,
+        totalMarks: data.totalMarks,
+      },
+    });
+    revalidatePath("/exams/schedule");
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true, message: "Failed to update schedule entry." };
+  }
+};
+
+export const deleteExamSchedule = async (
+  currentState: { success: boolean; error: boolean },
+  formData: FormData
+) => {
+  const id = parseInt(formData.get("id") as string);
+  try {
+    await prisma.examSchedule.delete({ where: { id } });
+    revalidatePath("/exams/schedule");
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true };
+  }
+};
+
+export const deleteScheduleEntry = async (id: number): Promise<{ success: boolean }> => {
+  try {
+    await prisma.examSchedule.delete({ where: { id } });
+    revalidatePath("/exams/schedule");
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false };
+  }
+};
+
+export const saveBulkSchedule = async (
+  examId: number,
+  classId: number,
+  entries: {
+    subjectId: number;
+    entryId: number | null;
+    date: string;
+    startTime: string;
+    endTime: string;
+    room: string;
+    totalMarks: number;
+  }[]
+): Promise<{ success: boolean }> => {
+  try {
+    for (const entry of entries) {
+      if (!entry.date || !entry.startTime || !entry.endTime) continue;
+
+      const data = {
+        date: dateToDateTime(entry.date),
+        startTime: timeToDate(entry.startTime),
+        endTime: timeToDate(entry.endTime),
+        room: entry.room || null,
+        totalMarks: entry.totalMarks,
+      };
+
+      if (entry.entryId) {
+        await prisma.examSchedule.update({ where: { id: entry.entryId }, data });
+      } else {
+        await prisma.examSchedule.create({
+          data: { examId, classId, subjectId: entry.subjectId, ...data },
+        });
+      }
+    }
+    revalidatePath("/exams/schedule");
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false };
+  }
+};
+
+export const resetPassword = async (
+  role: "teacher" | "student" | "admin",
+  id: string,
+  newPassword: string
+): Promise<{ success: boolean }> => {
+  try {
+    const hashedPassword = await hashPassword(newPassword);
+
+    if (role === "teacher") {
+      await prisma.teacher.update({ where: { id }, data: { password: hashedPassword } });
+    } else if (role === "student") {
+      await prisma.student.update({ where: { id }, data: { password: hashedPassword } });
+    } else {
+      await prisma.admin.update({ where: { id }, data: { password: hashedPassword } });
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false };
+  }
+};

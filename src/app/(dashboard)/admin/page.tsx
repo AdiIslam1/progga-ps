@@ -1,8 +1,11 @@
-import Announcements from "@/components/Announcements";
 import AttendanceChartContainer from "@/components/AttendanceChartContainer";
 import CountChartContainer from "@/components/CountChartContainer";
 import EventCalendarContainer from "@/components/EventCalendarContainer";
-import FinanceChart from "@/components/FinanceChart";
+import FinanceChartContainer from "@/components/FinanceChartContainer";
+import PendingFeesCard from "@/components/PendingFeesCard";
+import RecentPaymentsPanel from "@/components/RecentPaymentsPanel";
+import TodayAttendanceCard from "@/components/TodayAttendanceCard";
+import UpcomingExamsPanel from "@/components/UpcomingExamsPanel";
 import UserCard from "@/components/UserCard";
 
 const AdminPage = ({
@@ -14,33 +17,32 @@ const AdminPage = ({
     <div className="p-4 flex gap-4 flex-col md:flex-row">
       {/* LEFT */}
       <div className="w-full lg:w-2/3 flex flex-col gap-8">
-        {/* USER CARDS */}
+        {/* STAT CARDS */}
         <div className="flex gap-4 justify-between flex-wrap">
-          <UserCard type="admin" />
-          <UserCard type="teacher" />
-          <UserCard type="student" />
-          <UserCard type="parent" />
+          <UserCard type="teacher" href="/list/teachers" />
+          <UserCard type="student" href="/list/students" />
+          <PendingFeesCard />
+          <TodayAttendanceCard />
         </div>
         {/* MIDDLE CHARTS */}
         <div className="flex gap-4 flex-col lg:flex-row">
-          {/* COUNT CHART */}
           <div className="w-full lg:w-1/3 h-[450px]">
             <CountChartContainer />
           </div>
-          {/* ATTENDANCE CHART */}
           <div className="w-full lg:w-2/3 h-[450px]">
             <AttendanceChartContainer />
           </div>
         </div>
-        {/* BOTTOM CHART */}
+        {/* FINANCE CHART — real data */}
         <div className="w-full h-[500px]">
-          <FinanceChart />
+          <FinanceChartContainer />
         </div>
       </div>
       {/* RIGHT */}
-      <div className="w-full lg:w-1/3 flex flex-col gap-8">
-        <EventCalendarContainer searchParams={searchParams}/>
-        <Announcements />
+      <div className="w-full lg:w-1/3 flex flex-col gap-6">
+        <EventCalendarContainer searchParams={searchParams} />
+        <UpcomingExamsPanel />
+        <RecentPaymentsPanel />
       </div>
     </div>
   );

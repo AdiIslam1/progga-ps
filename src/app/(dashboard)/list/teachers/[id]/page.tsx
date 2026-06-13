@@ -2,7 +2,7 @@ import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import BigCalendar from "@/components/BigCalender";
 import FormContainer from "@/components/FormContainer";
-import Performance from "@/components/Performance";
+import ResetPasswordButton from "@/components/ResetPasswordButton";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth-server";
 import { Teacher } from "@prisma/client";
@@ -44,8 +44,8 @@ const SingleTeacherPage = async ({
         {/* TOP */}
         <div className="flex flex-col lg:flex-row gap-4">
           {/* USER INFO CARD */}
-          <div className="bg-lamaSky py-6 px-4 rounded-md flex-1 flex gap-4">
-            <div className="w-1/3">
+          <div className="bg-lamaSky py-6 px-4 rounded-md flex-1 flex flex-col sm:flex-row gap-4">
+            <div className="flex justify-center sm:w-1/3">
               <Image
                 src={teacher.img || "/noAvatar.png"}
                 alt=""
@@ -54,13 +54,20 @@ const SingleTeacherPage = async ({
                 className="w-36 h-36 rounded-full object-cover"
               />
             </div>
-            <div className="w-2/3 flex flex-col justify-between gap-4">
-              <div className="flex items-center gap-4">
+            <div className="sm:w-2/3 flex flex-col justify-between gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 <h1 className="text-xl font-semibold">
                   {teacher.name + " " + teacher.surname}
                 </h1>
                 {role === "admin" && (
-                  <FormContainer table="teacher" type="update" data={teacher} />
+                  <div className="flex items-center gap-2">
+                    <Link href={`/list/teachers/${teacher.id}/edit`}>
+                      <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
+                        <Image src="/update.png" alt="Edit" width={16} height={16} />
+                      </button>
+                    </Link>
+                    <ResetPasswordButton role="teacher" id={teacher.id} />
+                  </div>
                 )}
               </div>
               <p className="text-sm text-gray-500">
@@ -155,7 +162,7 @@ const SingleTeacherPage = async ({
           </div>
         </div>
         {/* BOTTOM */}
-        <div className="mt-4 bg-white rounded-md p-4 h-[800px]">
+        <div className="mt-4 bg-white rounded-md p-4 min-h-[400px] lg:h-[800px]">
           <h1>Teacher&apos;s Schedule</h1>
           <BigCalendarContainer type="teacherId" id={teacher.id} />
         </div>
@@ -197,7 +204,6 @@ const SingleTeacherPage = async ({
             </Link>
           </div>
         </div>
-        <Performance />
         <Announcements />
       </div>
     </div>

@@ -19,10 +19,7 @@ export default async function PaymentReceiptPage({
     },
     include: {
       student: {
-        include: {
-          class: true,
-          parent: true,
-        },
+        include: { class: true },
       },
     },
   });
@@ -31,9 +28,8 @@ export default async function PaymentReceiptPage({
     notFound();
   }
 
-  // Get common student, parent, and transaction meta
+  // Get common student and transaction meta
   const student = collections[0].student;
-  const parent = student.parent;
   const receiptNo = params.receiptNo;
   const paidAt = collections[0].paidAt || new Date();
   const cashierId = collections[0].receivedById || "System Cashier";
@@ -59,7 +55,7 @@ export default async function PaymentReceiptPage({
       </div>
 
       {/* RECEIPT PAPER WRAPPER */}
-      <div className="w-full max-w-2xl bg-white p-8 md:p-10 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden print:shadow-none print:border-none print:p-0 print:m-0">
+      <div className="w-full max-w-2xl bg-white p-4 sm:p-8 md:p-10 rounded-2xl border border-gray-100 shadow-sm relative print:shadow-none print:border-none print:p-0 print:m-0">
         
         {/* TOP DECORATIVE BANNER (HIDDEN ON PRINT) */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-lamaSky to-lamaYellow print:hidden" />
@@ -68,7 +64,7 @@ export default async function PaymentReceiptPage({
         <div className="flex flex-col items-center text-center pb-6 border-b border-gray-100">
           <img src="/school-logo.jpg" alt="School Logo" className="w-16 h-16 rounded-full object-cover mb-2" />
           <h1 className="text-xl md:text-2xl font-black text-gray-800 uppercase tracking-wide">
-            Progga Preparatory and High School
+            Progga Preparatory & High School
           </h1>
           <p className="text-xs text-gray-400 mt-1">
             Chashara, Narayanganj, Dhaka, Bangladesh • Phone: +880 1711-000000
@@ -95,14 +91,14 @@ export default async function PaymentReceiptPage({
 
           <div className="flex flex-col gap-1 items-end text-right">
             <span className="text-gray-400 font-semibold uppercase text-[9px] tracking-wider">Guardian/Parent Contact</span>
-            <span className="text-gray-800 font-bold">{parent.name} {parent.surname}</span>
-            <span className="text-gray-500">Phone: {parent.phone}</span>
+            <span className="text-gray-800 font-bold">{student.guardianName || "—"}</span>
+            <span className="text-gray-500">Phone: {student.guardianPhone || "—"}</span>
             <span className="text-gray-500">Address: {student.address}</span>
           </div>
         </div>
 
         {/* STUDENT BIO CARD */}
-        <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100/50 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs my-6">
+        <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100/50 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs my-6">
           <div className="flex flex-col">
             <span className="text-gray-400 font-medium">Student Name</span>
             <span className="text-gray-800 font-bold mt-0.5">{student.name} {student.surname}</span>
@@ -113,11 +109,7 @@ export default async function PaymentReceiptPage({
           </div>
           <div className="flex flex-col">
             <span className="text-gray-400 font-medium">Student ID</span>
-            <span className="text-gray-800 font-bold mt-0.5">{student.id}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-gray-400 font-medium">Username</span>
-            <span className="text-gray-800 font-bold mt-0.5">{student.username}</span>
+            <span className="text-gray-800 font-bold mt-0.5 font-mono">{student.studentId}</span>
           </div>
         </div>
 
@@ -192,7 +184,7 @@ export default async function PaymentReceiptPage({
 
         {/* PRINT WATERMARK NOTES */}
         <p className="text-[9px] text-gray-300 italic text-center mt-12 border-t border-gray-50 pt-3 select-none">
-          This is an electronically generated statement. Generated via Progga Preparatory and High School Management System.
+          This is an electronically generated statement. Generated via Progga Preparatory & High School Management System.
         </p>
 
       </div>

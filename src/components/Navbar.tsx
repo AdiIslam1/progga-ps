@@ -1,21 +1,25 @@
 import { currentUser } from "@/lib/auth-server";
 import Image from "next/image";
+import HamburgerButton from "./HamburgerButton";
 import UserNav from "./UserNav";
 
 const Navbar = async () => {
   const user = await currentUser();
 
   return (
-    <div className="flex items-center justify-between p-4">
-      <div className="hidden md:flex items-center gap-2 text-xs rounded-full ring-[1.5px] ring-gray-300 px-2">
-        <Image src="/search.png" alt="" width={14} height={14} />
-        <input
-          type="text"
-          placeholder="Search..."
-          className="w-[200px] p-2 bg-transparent outline-none"
-        />
+    <div className="flex items-center justify-between p-4 gap-3">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <HamburgerButton />
+        <div className="hidden md:flex items-center gap-2 text-xs rounded-full ring-[1.5px] ring-gray-300 px-2 flex-1 max-w-xs">
+          <Image src="/search.png" alt="" width={14} height={14} className="flex-shrink-0" />
+          <input
+            type="text"
+            placeholder="Search..."
+            className="p-2 bg-transparent outline-none w-full"
+          />
+        </div>
       </div>
-      <div className="flex items-center gap-6 justify-end w-full">
+      <div className="flex items-center gap-4 flex-shrink-0">
         <div className="bg-white rounded-full w-7 h-7 flex items-center justify-center cursor-pointer">
           <Image src="/message.png" alt="" width={20} height={20} />
         </div>

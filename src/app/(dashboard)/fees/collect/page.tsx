@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import CollectorPortal from "./CollectorPortal";
 import BillFeeForm from "./BillFeeForm";
-import CustomTuitionEditor from "./CustomTuitionEditor";
 
 export default async function CollectFeesPage({
   searchParams,
@@ -20,7 +19,7 @@ export default async function CollectFeesPage({
   if (selectedStudentId) {
     const selectedStudent = await prisma.student.findUnique({
       where: { id: selectedStudentId },
-      include: { class: true, parent: true },
+      include: { class: true },
     });
 
     if (!selectedStudent) redirect("/fees/collect");
@@ -35,7 +34,7 @@ export default async function CollectFeesPage({
     const standardPackage = await prisma.feePackage.findFirst({
       where: {
         classId: selectedStudent.classId,
-        name: { contains: "Tuition", mode: "insensitive" },
+        type: "TUITION",
       },
     });
     const baseClassFee = standardPackage?.amount || 0;
@@ -75,16 +74,16 @@ export default async function CollectFeesPage({
                   </span>
                 </h2>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  ID: <span className="font-semibold text-gray-500">{selectedStudent.id}</span>
+                  ID: <span className="font-semibold text-gray-500">{selectedStudent.studentId}</span>
                 </p>
               </div>
             </div>
             <div className="border-t sm:border-t-0 sm:border-l border-gray-100 pt-3 sm:pt-0 sm:pl-5 flex flex-col gap-0.5 flex-shrink-0">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Guardian</span>
               <span className="text-xs font-bold text-gray-700">
-                {selectedStudent.parent.name} {selectedStudent.parent.surname}
+                {selectedStudent.guardianName || "—"}
               </span>
-              <span className="text-xs text-gray-500">📞 {selectedStudent.parent.phone}</span>
+              <span className="text-xs text-gray-500">📞 {selectedStudent.guardianPhone || "—"}</span>
             </div>
           </div>
 
@@ -102,12 +101,6 @@ export default async function CollectFeesPage({
               />
             </div>
             <div className="flex flex-col gap-4">
-              <CustomTuitionEditor
-                studentId={selectedStudent.id}
-                studentName={`${selectedStudent.name} ${selectedStudent.surname}`}
-                currentCustomFee={selectedStudent.customTuitionFee}
-                baseClassFee={baseClassFee}
-              />
               <BillFeeForm
                 studentId={selectedStudent.id}
                 studentName={`${selectedStudent.name} ${selectedStudent.surname}`}

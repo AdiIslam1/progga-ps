@@ -25,7 +25,7 @@ const AttendanceChartContainer = async () => {
 
   // console.log(data)
 
-  const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+  const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   const attendanceMap: { [key: string]: { present: number; absent: number } } =
     {
@@ -34,13 +34,14 @@ const AttendanceChartContainer = async () => {
       Wed: { present: 0, absent: 0 },
       Thu: { present: 0, absent: 0 },
       Fri: { present: 0, absent: 0 },
+      Sat: { present: 0, absent: 0 },
     };
 
   resData.forEach((item) => {
     const itemDate = new Date(item.date);
     const dayOfWeek = itemDate.getDay();
-    
-    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+
+    if (dayOfWeek >= 1 && dayOfWeek <= 6) {
       const dayName = daysOfWeek[dayOfWeek - 1];
 
       if (item.present) {

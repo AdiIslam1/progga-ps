@@ -33,50 +33,44 @@ async function main() {
     },
   });
 
-  // GRADE
-  for (let i = 1; i <= 6; i++) {
-    await prisma.grade.create({
-      data: {
-        level: i,
-      },
-    });
-  }
-
-  // CLASS (Bangladeshi Class 1 to Class 6 equivalents)
+  // CLASS (Class 1 to Class 6)
   for (let i = 1; i <= 6; i++) {
     await prisma.class.create({
       data: {
-        name: `${i}A`, 
-        gradeId: i, 
+        name: `${i}`,
         capacity: 20,
       },
     });
   }
 
-  // SUBJECT
-  const subjectData = [
-    { name: "Bangla" },
-    { name: "English" },
-    { name: "Mathematics" },
-    { name: "Science" },
-    { name: "Bangladesh & Global Studies" },
-    { name: "ICT" },
-    { name: "Religion & Moral Education" },
-    { name: "Physical Education" },
-    { name: "Arts & Crafts" },
-    { name: "Agriculture Studies" },
+  // SUBJECT — each class gets its own set of subjects
+  const subjectNames = [
+    "Bangla",
+    "English",
+    "Mathematics",
+    "Science",
+    "Bangladesh & Global Studies",
+    "ICT",
+    "Religion & Moral Education",
+    "Physical Education",
+    "Arts & Crafts",
+    "Agriculture Studies",
   ];
 
-  for (const subject of subjectData) {
-    await prisma.subject.create({ data: subject });
+  // Classes 1–6, subjects are the same set but scoped per class
+  for (let classId = 1; classId <= 6; classId++) {
+    for (const name of subjectNames) {
+      await prisma.subject.create({ data: { name, classId } });
+    }
   }
+
+  // Subjects are now indexed 1–60 (classId 1: ids 1-10, classId 2: ids 11-20, etc.)
 
   // TEACHER
   for (let i = 1; i <= 15; i++) {
     await prisma.teacher.create({
       data: {
         id: `teacher${i}`,
-        username: `teacher${i}`,
         password: defaultPassword,
         name: `TName${i}`,
         surname: `TSurname${i}`,
@@ -92,64 +86,58 @@ async function main() {
     });
   }
 
-  // LESSON
+  // LESSON — pick a subject that belongs to the lesson's class
+  // Subject IDs: class 1 → 1-10, class 2 → 11-20, ..., class N → (N-1)*10+1 to N*10
   for (let i = 1; i <= 30; i++) {
+    const lessonClassId = (i % 6) + 1;
+    const subjectOffset = (i % 10) + 1; // 1-10
+    const subjectId = (lessonClassId - 1) * 10 + subjectOffset;
     await prisma.lesson.create({
       data: {
-        name: `Lesson ${i}`, 
+        name: `Lesson ${i}`,
         day: Day[
           Object.keys(Day)[
             Math.floor(Math.random() * Object.keys(Day).length)
           ] as keyof typeof Day
-        ], 
-        startTime: new Date(2026, 4, 22, 9, 0), 
-        endTime: new Date(2026, 4, 22, 10, 30), 
-        subjectId: (i % 10) + 1, 
-        classId: (i % 6) + 1, 
-        teacherId: `teacher${(i % 15) + 1}`, 
-      },
-    });
-  }
-
-  // PARENT (Guardians)
-  for (let i = 1; i <= 25; i++) {
-    await prisma.parent.create({
-      data: {
-        id: `parentId${i}`,
-        username: `parentId${i}`,
-        password: defaultPassword,
-        name: `GName ${i}`,
-        surname: `GSurname ${i}`,
-        email: `guardian${i}@example.com`,
-        phone: `0198765432${i}`,
-        address: `Mirpur, Dhaka`,
+        ],
+        startTime: new Date(2026, 4, 22, 9, 0),
+        endTime: new Date(2026, 4, 22, 10, 30),
+        subjectId,
+        classId: lessonClassId,
+        teacherId: `teacher${(i % 15) + 1}`,
       },
     });
   }
 
   // STUDENT
+  const year = new Date().getFullYear() % 100; // e.g. 26
+  const classSerials: Record<number, number> = {};
+
   for (let i = 1; i <= 50; i++) {
-    // Custom fees for specific students (scholarships/waivers)
     let customTuitionFee: number | null = null;
-    if (i === 1) customTuitionFee = 800; // Partial waiver
-    if (i === 2) customTuitionFee = 0;   // 100% waiver
-    if (i === 3) customTuitionFee = 500; // Custom sibling discount
+    if (i === 1) customTuitionFee = 800;
+    if (i === 2) customTuitionFee = 0;
+    if (i === 3) customTuitionFee = 500;
+
+    const classLevel = (i % 6) + 1;
+    classSerials[classLevel] = (classSerials[classLevel] || 0) + 1;
+    const studentId = year * 100000 + classLevel * 1000 + classSerials[classLevel];
+    const studentPassword = await bcrypt.hash(studentId.toString(), 10);
 
     await prisma.student.create({
       data: {
-        id: `student${i}`, 
-        username: `student${i}`,
-        password: defaultPassword,
+        id: `student${i}`,
+        studentId,
+        password: studentPassword,
         name: `SName${i}`,
         surname: `SSurname ${i}`,
-        email: `student${i}@bornomala.edu.bd`,
-        phone: `015555555${i}`,
+        phone: `015555555${i < 10 ? `0${i}` : i}`,
         address: `Dhaka, Bangladesh`,
         bloodType: "O-",
         sex: i % 2 === 0 ? UserSex.MALE : UserSex.FEMALE,
-        parentId: `parentId${Math.ceil(i / 2) % 25 || 25}`, 
-        gradeId: (i % 6) + 1, 
-        classId: (i % 6) + 1, 
+        guardianName: `Guardian ${i}`,
+        guardianPhone: `019876543${i < 10 ? `0${i}` : i}`,
+        classId: classLevel,
         customTuitionFee,
         birthday: new Date(2012, 1, i),
       },
@@ -163,8 +151,8 @@ async function main() {
   for (let g = 1; g <= 6; g++) {
     const pkg = await prisma.feePackage.create({
       data: {
-        name: `Class ${g} Standard Tuition Fee`,
-        description: `Regular monthly tuition fees for students of Class ${g}`,
+        name: `Class ${g} Monthly Tuition`,
+        description: `Monthly tuition fee for Class ${g} students`,
         amount: tuitionFeesByGrade[g - 1],
         classId: g,
       },
@@ -197,10 +185,10 @@ async function main() {
   let receiptCounter = 1000;
 
   for (const student of dbStudents) {
-    const gradeLevel = student.gradeId; // 1 to 6
-    const baseTuition = tuitionFeesByGrade[gradeLevel - 1];
+    const classLevel = student.classId; // classId 1–6 matches class name "1"–"6"
+    const baseTuition = tuitionFeesByGrade[classLevel - 1];
     const actualTuition = student.customTuitionFee !== null ? student.customTuitionFee : baseTuition;
-    const standardPkg = packages[gradeLevel - 1];
+    const standardPkg = packages[classLevel - 1];
 
     // Monthly Tuition Fees
     for (let mIdx = 0; mIdx < months.length; mIdx++) {
@@ -279,9 +267,9 @@ async function main() {
   await prisma.notice.create({
     data: {
       title: "Absence Warning Alert",
-      content: "Dear Guardian, your ward SName1 was absent today from the morning assembly and lessons without prior notice. Bornomala HS.",
+      content: "Dear Guardian, your ward SName1 was absent today from the morning assembly and lessons without prior notice. Progga HS.",
       type: NoticeType.SMS,
-      recipientId: "parentId1",
+      recipientId: "student1",
       classId: 1,
     },
   });
@@ -303,22 +291,20 @@ async function main() {
 
   // EXAMS & SCHEDULES & RESULTS (Adding term details, removing assignment logic)
   for (let i = 1; i <= 10; i++) {
-    const examTerm = i <= 5 ? "HALF_YEARLY" : "FINAL_EXAM";
     const exam = await prisma.exam.create({
       data: {
-        title: `${i <= 5 ? "Half-Yearly" : "Final"} Exam - Subject ${i}`, 
-        startTime: new Date(2026, 5, 10 + i, 10, 0), 
-        endTime: new Date(2026, 5, 10 + i, 13, 0), 
-        term: examTerm,
-        lessonId: (i % 30) + 1, 
+        title: i <= 5 ? "Half Yearly" : "Final Exam",
       },
     });
 
-    // Create schedule
+    const examClassId = (i % 6) + 1;
+    const examSubjectOffset = (i % 10) + 1;
+    const examSubjectId = (examClassId - 1) * 10 + examSubjectOffset;
     await prisma.examSchedule.create({
       data: {
         examId: exam.id,
-        subjectId: (i % 10) + 1,
+        classId: examClassId,
+        subjectId: examSubjectId,
         date: new Date(2026, 5, 10 + i),
         startTime: new Date(2026, 5, 10 + i, 10, 0),
         endTime: new Date(2026, 5, 10 + i, 13, 0),
@@ -353,12 +339,15 @@ async function main() {
 
   // ATTENDANCE
   for (let i = 1; i <= 10; i++) {
+    const studentClassId = (i % 6) + 1;
+    const subjectOffset = (i % 10) + 1;
+    const attendanceSubjectId = (studentClassId - 1) * 10 + subjectOffset;
     await prisma.attendance.create({
       data: {
-        date: new Date(2026, 4, 22), 
+        date: new Date(2026, 4, 22),
         present: i % 5 !== 0, // Mock 80% attendance rate
-        studentId: `student${i}`, 
-        lessonId: (i % 30) + 1, 
+        studentId: `student${i}`,
+        subjectId: attendanceSubjectId,
       },
     });
   }

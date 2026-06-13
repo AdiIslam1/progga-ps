@@ -73,7 +73,7 @@ const LoginPage = () => {
     setLoading(false);
 
     if (result?.error) {
-      setError("Invalid username or password");
+      setError("Invalid credentials. Teachers and students should use their numeric ID.");
     }
   };
 
@@ -85,13 +85,13 @@ const LoginPage = () => {
       >
         <h1 className="text-xl font-bold flex items-center gap-2">
           <Image src="/school-logo.jpg" alt="" width={28} height={28} className="rounded-full" />
-          Progga Preparatory and High School
+          Progga Preparatory & High School
         </h1>
         <h2 className="text-gray-400">Sign in to your account</h2>
         {error ? <p className="text-sm text-red-400">{error}</p> : null}
         <div className="flex flex-col gap-2">
           <label className="text-xs text-gray-500" htmlFor="username">
-            Username
+            Admin Username / Teacher or Student ID
           </label>
           <input
             id="username"
