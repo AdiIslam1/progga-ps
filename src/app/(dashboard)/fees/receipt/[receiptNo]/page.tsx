@@ -25,12 +25,12 @@ function numberToWords(num: number): string {
 
 function DottedRow({ label, value }: { label: string; value?: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "flex-end", gap: "4px" }}>
+    <div style={{ display: "flex", alignItems: "flex-end", gap: "0" }}>
       <span style={{ flexShrink: 0, fontSize: "9px", fontWeight: 700, color: BLUE, whiteSpace: "nowrap" }}>{label}</span>
       <span style={{
         flex: 1, fontSize: "9px", color: "#1f2937",
         borderBottom: `1px dotted ${BLUE}66`, paddingBottom: "1px", minWidth: 0,
-      }}>{value || " "}</span>
+      }}>{value ?? ""}</span>
     </div>
   );
 }
@@ -199,14 +199,30 @@ export default async function PaymentReceiptPage({ params }: { params: { receipt
     <>
       <style>{`
         @media print {
+          html, body {
+            height: 100vh !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
           body * { visibility: hidden !important; }
-          #receipt-print, #receipt-print * { visibility: visible !important; }
+          #receipt-print, #receipt-print * {
+            visibility: visible !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
           #receipt-print {
             position: fixed !important;
-            inset: 0 !important;
+            top: 0 !important; left: 0 !important;
+            right: 0 !important; bottom: 0 !important;
             display: grid !important;
             grid-template-columns: 1fr 1fr !important;
             background: white !important;
+            overflow: hidden !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+            max-width: none !important;
           }
           .no-print { display: none !important; }
           @page { size: A4 landscape; margin: 8mm; }
