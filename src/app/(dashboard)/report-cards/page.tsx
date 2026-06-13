@@ -194,7 +194,7 @@ export default async function ReportCardsPage({
                   <div className="flex flex-col items-center text-center pb-6 border-b border-gray-100">
                     <img src="/school-logo.jpg" alt="School Logo" className="w-14 h-14 rounded-full object-cover mb-2" />
                     <h2 className="text-2xl font-black text-gray-800 uppercase tracking-wide">
-                      Progga Preparatory and High School
+                      Progga Preparatory & High School
                     </h2>
                     <p className="text-xs text-gray-400 mt-1">
                       Dhaka, Bangladesh • Academic Report Card
@@ -227,6 +227,7 @@ export default async function ReportCardsPage({
                   {/* RESULTS TABLE */}
                   <div className="my-6">
                     <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Marksheet Statement</h3>
+                    <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="border-b border-gray-100 bg-gray-50 text-gray-500 font-bold uppercase text-[9px] tracking-wider">
@@ -255,6 +256,7 @@ export default async function ReportCardsPage({
                         )}
                       </tbody>
                     </table>
+                    </div>
                   </div>
 
                   {/* SUMMARY */}
@@ -298,7 +300,7 @@ export default async function ReportCardsPage({
                 </div>
 
                 <p className="text-[9px] text-gray-300 italic text-center mt-12 border-t border-gray-50 pt-3 select-none">
-                  Generated electronically via Progga Preparatory and High School Result Suite. Board standard grading applied.
+                  Generated electronically via Progga Preparatory & High School Result Suite. Board standard grading applied.
                 </p>
               </div>
             );

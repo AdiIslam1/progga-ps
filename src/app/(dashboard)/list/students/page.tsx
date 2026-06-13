@@ -5,6 +5,7 @@ import TableSearch from "@/components/TableSearch";
 import StudentFilters from "@/components/StudentFilters";
 import ClickableRow from "@/components/ClickableRow";
 import StudentActionCell from "@/components/StudentActionCell";
+import Link from "next/link";
 import { Suspense } from "react";
 
 import prisma from "@/lib/prisma";
@@ -65,7 +66,11 @@ const StudentListPage = async ({
       <td className="hidden xl:table-cell text-sm text-gray-600 max-w-[160px] truncate">{item.address}</td>
       {role === "admin" && (
         <StudentActionCell>
-          <FormContainer table="student" type="update" data={item} />
+          <Link href={`/list/students/${item.id}/edit`}>
+            <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
+              <Image src="/update.png" alt="Edit" width={16} height={16} />
+            </button>
+          </Link>
           <FormContainer table="student" type="delete" id={item.id} />
         </StudentActionCell>
       )}
@@ -130,7 +135,11 @@ const StudentListPage = async ({
             <StudentFilters classes={allClasses} />
           </Suspense>
           {role === "admin" && (
-            <FormContainer table="student" type="create" />
+            <Link href="/list/students/new">
+              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
+                <Image src="/create.png" alt="Add student" width={16} height={16} />
+              </button>
+            </Link>
           )}
         </div>
       </div>

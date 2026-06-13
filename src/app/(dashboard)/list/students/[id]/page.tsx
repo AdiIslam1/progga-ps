@@ -1,6 +1,7 @@
 import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import FormContainer from "@/components/FormContainer";
+import ResetPasswordButton from "@/components/ResetPasswordButton";
 import StudentAttendanceCard from "@/components/StudentAttendanceCard";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth-server";
@@ -86,7 +87,14 @@ const SingleStudentPage = async ({
                 <p className="text-sm text-gray-500 font-mono">ID: {student.studentId}</p>
               </div>
               {role === "admin" && (
-                <FormContainer table="student" type="update" data={student} />
+                <div className="flex items-center gap-2">
+                  <Link href={`/list/students/${student.id}/edit`}>
+                    <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
+                      <Image src="/update.png" alt="Edit" width={16} height={16} />
+                    </button>
+                  </Link>
+                  <ResetPasswordButton role="student" id={student.id} />
+                </div>
               )}
             </div>
 
@@ -145,7 +153,7 @@ const SingleStudentPage = async ({
         </div>
 
         {/* Schedule */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 h-[800px]">
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 min-h-[400px] lg:h-[800px]">
           <h2 className="text-base font-semibold mb-2">Class Schedule</h2>
           <BigCalendarContainer type="classId" id={student.class.id} />
         </div>

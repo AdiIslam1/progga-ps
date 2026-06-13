@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 import Image from "next/image";
-import { Dispatch, SetStateAction, useRef, useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { studentSchema, StudentSchema } from "@/lib/formValidationSchemas";
 import { createStudent, updateStudent } from "@/lib/actions";
 import { useRouter } from "next/navigation";
@@ -20,7 +20,7 @@ const StudentForm = ({
 }: {
   type: "create" | "update";
   data?: any;
-  setOpen: Dispatch<SetStateAction<boolean>>;
+  setOpen?: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
   const {
@@ -31,35 +31,11 @@ const StudentForm = ({
     resolver: zodResolver(studentSchema),
   });
 
-  const [img, setImg] = useState<any>(data?.img ? { secure_url: data.img } : null);
-  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
   const { classes = [] } = relatedData || {};
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const json = await res.json();
-      if (res.ok) {
-        setImg({ secure_url: json.url });
-      } else {
-        toast.error(json.error || "Upload failed");
-      }
-    } catch {
-      toast.error("Upload failed");
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const onSubmit = handleSubmit(async (formData) => {
     setSubmitting(true);
@@ -68,11 +44,11 @@ const StudentForm = ({
       if (type === "create") {
         const result = await createStudent(
           { success: false, error: false },
-          { ...formData, img: img?.secure_url }
+          { ...formData }
         );
         if (result.success && result.id) {
           toast("Student created successfully!");
-          setOpen(false);
+          if (setOpen) setOpen(false);
           router.push(`/list/students/${result.id}`);
         } else {
           setServerError(true);
@@ -80,12 +56,16 @@ const StudentForm = ({
       } else {
         const result = await updateStudent(
           { success: false, error: false },
-          { ...formData, img: img?.secure_url }
+          { ...formData }
         );
         if (result.success) {
           toast("Student updated successfully!");
-          setOpen(false);
-          router.refresh();
+          if (setOpen) {
+            setOpen(false);
+            router.refresh();
+          } else {
+            router.push("/list/students");
+          }
         } else {
           setServerError(true);
         }
@@ -115,36 +95,12 @@ const StudentForm = ({
           Personal Information
         </p>
 
-        {/* Photo upload */}
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200 flex-shrink-0">
-            {img?.secure_url ? (
-              <img src={img.secure_url} alt="Preview" className="w-full h-full object-cover" />
-            ) : (
-              <Image src="/noAvatar.png" alt="" width={64} height={64} className="w-full h-full object-cover" />
-            )}
+        {/* Avatar placeholder — photo upload coming soon */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border border-gray-200 flex-shrink-0">
+            <Image src="/noAvatar.png" alt="" width={64} height={64} className="w-full h-full object-cover" />
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="flex items-center gap-2 text-sm text-blue-500 hover:text-blue-700 border border-blue-300 hover:border-blue-500 rounded-md px-3 py-2 transition-colors disabled:opacity-50"
-          >
-            <Image src="/upload.png" alt="" width={16} height={16} />
-            {uploading ? "Uploading…" : img?.secure_url ? "Change Photo" : "Upload Photo"}
-          </button>
-          {img?.secure_url && (
-            <button type="button" onClick={() => { setImg(null); if (fileInputRef.current) fileInputRef.current.value = ""; }} className="text-xs text-red-400 hover:text-red-600">
-              Remove
-            </button>
-          )}
+          <span className="text-xs text-gray-400">Photo upload coming soon</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

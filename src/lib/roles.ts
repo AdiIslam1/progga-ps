@@ -5,7 +5,6 @@ export const inferRoleFromUsername = (
 ): UserRole | undefined => {
   if (!username) return undefined;
   if (username.startsWith("admin")) return "admin";
-  if (username.startsWith("teacher")) return "teacher";
   if (/^\d{7}$/.test(username)) return "student";
   return undefined;
 };

@@ -71,7 +71,6 @@ async function main() {
     await prisma.teacher.create({
       data: {
         id: `teacher${i}`,
-        username: `teacher${i}`,
         password: defaultPassword,
         name: `TName${i}`,
         surname: `TSurname${i}`,
@@ -304,6 +303,7 @@ async function main() {
     await prisma.examSchedule.create({
       data: {
         examId: exam.id,
+        classId: examClassId,
         subjectId: examSubjectId,
         date: new Date(2026, 5, 10 + i),
         startTime: new Date(2026, 5, 10 + i, 10, 0),
