@@ -83,7 +83,7 @@ const TeacherForm = ({
             error={errors?.password}
           />
           {type === "create" && (
-            <p className="text-[11px] text-gray-400">Defaults to phone number, or "12345678" if no phone set.</p>
+            <p className="text-[11px] text-gray-400">Defaults to phone number, or &quot;12345678&quot; if no phone set.</p>
           )}
         </div>
       </div>

@@ -107,7 +107,7 @@ export default async function RoutineEditPage({
 
       {/* Hint */}
       <p className="text-xs text-gray-400 -mt-3">
-        Hover over a period card to edit or delete it. Click "+ Add Period" to add a new one.
+        Hover over a period card to edit or delete it. Click &quot;+ Add Period&quot; to add a new one.
       </p>
 
       {/* Grid */}

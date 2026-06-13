@@ -226,7 +226,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
             <span className="text-3xl block mb-2">📂</span>
             <h3 className="text-sm font-bold text-gray-700">No Student Records Found</h3>
             <p className="text-xs text-gray-400 mt-1">
-              We couldn't retrieve any student profile connected to this session.
+              We couldn&apos;t retrieve any student profile connected to this session.
             </p>
           </div>
         )}

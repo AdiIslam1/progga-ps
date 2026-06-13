@@ -230,7 +230,7 @@ export default function NoticeBoardPortal({ role, classes, students, currentConf
             <div>
               <h3 className="text-sm font-bold text-gray-800">Absence Alert Message</h3>
               <p className="text-xs text-gray-400 mt-0.5">
-                Use <code className="bg-gray-100 px-1 rounded text-red-500 font-mono">{"{studentName}"}</code> as a placeholder — it will be replaced with each student's actual name before sending.
+                Use <code className="bg-gray-100 px-1 rounded text-red-500 font-mono">{"{studentName}"}</code> as a placeholder — it will be replaced with each student&apos;s actual name before sending.
               </p>
             </div>
             <textarea
@@ -405,7 +405,7 @@ export default function NoticeBoardPortal({ role, classes, students, currentConf
             <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-2">
               <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Example Message</h3>
               <p className="text-xs text-gray-500 italic leading-relaxed">
-                "Dear Guardian, your ward was absent on {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}. Please contact the school. — Progga HS"
+                &quot;Dear Guardian, your ward was absent on {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}. Please contact the school. — Progga HS&quot;
               </p>
               <p className="text-[10px] text-gray-400">105 chars — 1 English segment</p>
             </div>
