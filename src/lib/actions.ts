@@ -484,20 +484,18 @@ export const saveBulkResults = async (
   }
 };
 
-// Save bulk student attendance for a given lesson and date
 export const saveBulkAttendance = async (
-  subjectId: number,
+  classId: number,
   dateStr: string, // "YYYY-MM-DD"
   attendances: { studentId: string; present: boolean }[]
 ) => {
   try {
     const attendanceDate = new Date(dateStr);
-    attendanceDate.setHours(0, 0, 0, 0); // Normalize time boundary
+    attendanceDate.setHours(0, 0, 0, 0);
 
-    // Find existing attendance records for this subject and date
     const existing = await prisma.attendance.findMany({
       where: {
-        subjectId,
+        classId,
         date: {
           gte: attendanceDate,
           lt: new Date(attendanceDate.getTime() + 24 * 60 * 60 * 1000),
@@ -520,7 +518,7 @@ export const saveBulkAttendance = async (
           return prisma.attendance.create({
             data: {
               studentId: a.studentId,
-              subjectId,
+              classId,
               date: attendanceDate,
               present: a.present,
             },

@@ -17,16 +17,16 @@ interface AttendanceItem {
 }
 
 interface AttendancePortalProps {
-  subjectId: number;
-  subjectTitle: string;
+  classId: number;
+  className: string;
   date: string;
   students: StudentItem[];
   existingAttendance: AttendanceItem[];
 }
 
 export default function AttendancePortal({
-  subjectId,
-  subjectTitle,
+  classId,
+  className,
   date,
   students,
   existingAttendance,
@@ -35,7 +35,6 @@ export default function AttendancePortal({
   const [loading, setLoading] = useState(false);
   const [attendanceMap, setAttendanceMap] = useState<{ [studentId: string]: boolean }>({});
 
-  // Pre-populate with existing attendance records or default to present (true)
   useEffect(() => {
     const initialMap: { [studentId: string]: boolean } = {};
     students.forEach((std) => {
@@ -69,9 +68,9 @@ export default function AttendancePortal({
 
     setLoading(true);
     try {
-      const res = await saveBulkAttendance(subjectId, date, payload);
+      const res = await saveBulkAttendance(classId, date, payload);
       if (res.success) {
-        toast.success(`Attendance for "${subjectTitle}" saved successfully!`);
+        toast.success(`Attendance for Class ${className} saved successfully!`);
         router.refresh();
       } else {
         toast.error("Failed to save attendance.");
@@ -84,7 +83,6 @@ export default function AttendancePortal({
     }
   };
 
-  // Metrics calculation
   const total = students.length;
   const presentCount = Object.values(attendanceMap).filter(Boolean).length;
   const absentCount = total - presentCount;
@@ -96,7 +94,7 @@ export default function AttendancePortal({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-50 pb-5">
         <div>
           <span className="text-[10px] uppercase font-extrabold tracking-wider px-2.5 py-1 bg-lamaSkyLight text-lamaSky rounded-full">
-            Subject: {subjectTitle}
+            Class {className}
           </span>
           <h2 className="text-base font-bold text-gray-800 mt-2">
             Class Attendance Register - <span className="text-lamaSky">{date}</span>

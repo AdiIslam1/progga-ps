@@ -8,7 +8,6 @@ import Link from "next/link";
 interface PageProps {
   searchParams: {
     classId?: string;
-    subjectId?: string;
     date?: string;
   };
 }
@@ -37,26 +36,16 @@ export default async function AttendancePage({ searchParams }: PageProps) {
 
     const selectedClassId = searchParams.classId || classes[0]?.id.toString();
 
-    const subjects = selectedClassId
-      ? await prisma.subject.findMany({
-          where: { classId: parseInt(selectedClassId) },
-          select: { id: true, name: true },
-          orderBy: { name: "asc" },
-        })
-      : [];
-
-    const selectedSubjectId = searchParams.subjectId || subjects[0]?.id.toString();
-
     let students: { id: string; name: string; surname: string }[] = [];
     let existingAttendance: { studentId: string; present: boolean }[] = [];
-    let currentSubject: { id: number; name: string } | null = null;
+    let currentClass: { id: number; name: string } | null = null;
 
-    if (selectedClassId && selectedSubjectId) {
-      currentSubject = subjects.find((s) => s.id === parseInt(selectedSubjectId)) ?? null;
+    if (selectedClassId) {
+      currentClass = classes.find((c) => c.id === parseInt(selectedClassId)) ?? null;
 
-      if (currentSubject) {
+      if (currentClass) {
         students = await prisma.student.findMany({
-          where: { classId: parseInt(selectedClassId) },
+          where: { classId: currentClass.id },
           select: { id: true, name: true, surname: true },
           orderBy: { name: "asc" },
         });
@@ -66,7 +55,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
 
         existingAttendance = await prisma.attendance.findMany({
           where: {
-            subjectId: currentSubject.id,
+            classId: currentClass.id,
             date: {
               gte: attendanceDate,
               lt: new Date(attendanceDate.getTime() + 24 * 60 * 60 * 1000),
@@ -83,7 +72,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
           <div>
             <h1 className="text-2xl font-extrabold text-gray-800 tracking-tight">Attendance Register</h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              Record daily subject presence, track absentees, and manage routine roll calls.
+              Record daily class presence, track absentees, and manage routine roll calls.
             </p>
           </div>
           <Link
@@ -96,7 +85,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
 
         {/* FILTERS */}
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-          <form method="GET" action="/list/attendance" className="grid gap-4 sm:grid-cols-4 items-end">
+          <form method="GET" action="/list/attendance" className="grid gap-4 sm:grid-cols-3 items-end">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-gray-500">Select Class</label>
               <select
@@ -108,25 +97,6 @@ export default async function AttendancePage({ searchParams }: PageProps) {
                 {classes.map((cls) => (
                   <option key={cls.id} value={cls.id}>
                     Class {cls.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-gray-500">Select Subject</label>
-              <select
-                name="subjectId"
-                className="ring-1 ring-gray-200 p-2.5 rounded-xl text-xs w-full outline-none focus:ring-2 focus:ring-lamaSky transition-all bg-white font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                defaultValue={selectedSubjectId || ""}
-                disabled={subjects.length === 0}
-              >
-                <option value="">
-                  {subjects.length === 0 ? "-- Choose Class First --" : "-- Choose Subject --"}
-                </option>
-                {subjects.map((sub) => (
-                  <option key={sub.id} value={sub.id}>
-                    {sub.name}
                   </option>
                 ))}
               </select>
@@ -151,11 +121,11 @@ export default async function AttendancePage({ searchParams }: PageProps) {
           </form>
         </div>
 
-        {selectedClassId && selectedSubjectId && currentSubject ? (
+        {selectedClassId && currentClass ? (
           students.length > 0 ? (
             <AttendancePortal
-              subjectId={currentSubject.id}
-              subjectTitle={currentSubject.name}
+              classId={currentClass.id}
+              className={currentClass.name}
               date={selectedDate}
               students={students}
               existingAttendance={existingAttendance}
@@ -165,17 +135,16 @@ export default async function AttendancePage({ searchParams }: PageProps) {
               <span className="text-3xl block mb-2">👥</span>
               <h3 className="text-sm font-bold text-gray-700">No Students Found</h3>
               <p className="text-xs text-gray-400 mt-1">
-                There are no students enrolled in Class{" "}
-                {classes.find((c) => c.id === parseInt(selectedClassId))?.name || ""}.
+                There are no students enrolled in Class {currentClass.name}.
               </p>
             </div>
           )
         ) : (
           <div className="bg-white p-12 text-center border border-gray-100 rounded-2xl shadow-sm flex flex-col items-center justify-center">
             <span className="text-3xl block mb-2">📅</span>
-            <h3 className="text-sm font-bold text-gray-700">Select Class & Subject</h3>
+            <h3 className="text-sm font-bold text-gray-700">Select Class & Date</h3>
             <p className="text-xs text-gray-400 mt-1 max-w-xs">
-              Choose a class and subject to load the attendance register.
+              Choose a class and date to load the attendance register.
             </p>
           </div>
         )}
@@ -193,7 +162,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
     const records = await prisma.attendance.findMany({
       where: { studentId: userId },
       include: {
-        subject: { select: { name: true } },
+        class: { select: { name: true } },
       },
       orderBy: { date: "desc" },
     });

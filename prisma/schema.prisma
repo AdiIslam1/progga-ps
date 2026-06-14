@@ -74,6 +74,7 @@ model Class {
   notices       Notice[]
   subjects      Subject[]
   examSchedules ExamSchedule[]
+  attendances   Attendance[]
 }
 
 model Subject {
@@ -85,7 +86,6 @@ model Subject {
   lessons       Lesson[]
   examSchedules ExamSchedule[]
   results       Result[]
-  attendances   Attendance[]
 
   @@unique([name, classId])
 }
@@ -133,8 +133,8 @@ model Attendance {
 
   studentId String
   student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  subjectId Int
-  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  classId   Int
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
 }
 
 model Event {

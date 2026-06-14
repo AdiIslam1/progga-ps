@@ -4,7 +4,7 @@ interface AttendanceRecord {
   id: number;
   date: Date;
   present: boolean;
-  subject: {
+  class: {
     name: string;
   };
 }
@@ -20,14 +20,12 @@ export default function AttendanceAnalytics({
   studentId,
   records,
 }: AttendanceAnalyticsProps) {
-  // Compute analytics metrics
   const totalDays = records.length;
   const daysPresent = records.filter((r) => r.present).length;
   const daysAbsent = totalDays - daysPresent;
   const attendanceRate = totalDays > 0 ? ((daysPresent / totalDays) * 100).toFixed(1) : "0.0";
   const attendanceNum = parseFloat(attendanceRate);
 
-  // Group records chronologically (newest first)
   const sortedRecords = [...records].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   return (
@@ -47,18 +45,10 @@ export default function AttendanceAnalytics({
                 : "Warning: Attendance is below optimal boundaries. Requires immediate review."}
             </p>
           </div>
-          
-          {/* Radial Indicator Mockup */}
+
           <div className="relative w-20 h-20 flex items-center justify-center">
             <svg className="w-full h-full transform -rotate-90">
-              <circle
-                cx="40"
-                cy="40"
-                r="34"
-                stroke="#f3f4f6"
-                strokeWidth="6"
-                fill="transparent"
-              />
+              <circle cx="40" cy="40" r="34" stroke="#f3f4f6" strokeWidth="6" fill="transparent" />
               <circle
                 cx="40"
                 cy="40"
@@ -102,7 +92,7 @@ export default function AttendanceAnalytics({
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4">
         <div>
           <h3 className="text-base font-bold text-gray-800">Attendance Log History</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Chronological record of class attendance tracked inside Progga Preparatory & High School portals.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Chronological record of class attendance tracked inside Progga Preparatory &amp; High School portals.</p>
         </div>
 
         {sortedRecords.length === 0 ? (
@@ -117,7 +107,6 @@ export default function AttendanceAnalytics({
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-gray-500 font-bold uppercase text-[9px] tracking-wider">
                   <th className="p-3">Date</th>
-                  <th className="p-3">Subject</th>
                   <th className="p-3 text-right">Status</th>
                 </tr>
               </thead>
@@ -135,7 +124,6 @@ export default function AttendanceAnalytics({
                         day: "numeric",
                       })}
                     </td>
-                    <td className="p-3 font-semibold text-gray-700">{rec.subject.name}</td>
                     <td className="p-3 text-right">
                       {rec.present ? (
                         <span className="text-[10px] text-green-700 font-bold bg-green-50 px-2.5 py-0.5 rounded-full border border-green-100">
