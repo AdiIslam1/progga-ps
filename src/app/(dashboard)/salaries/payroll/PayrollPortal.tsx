@@ -1,6 +1,6 @@
 "use client";
 
-import { processSalaryPayment } from "@/lib/salaryActions";
+import { processSalaryPayment, updateSalaryAdjustment } from "@/lib/salaryActions";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-toastify";
@@ -9,7 +9,11 @@ interface SalaryItem {
   id: number;
   name: string;
   amount: number;
+  bonus: number;
+  deduction: number;
+  note: string | null;
   month: string;
+  type: "SALARY" | "BONUS";
   status: "PAID" | "UNPAID";
 }
 
@@ -29,6 +33,95 @@ interface PayrollPortalProps {
   cashierUsername: string;
 }
 
+function AdjustmentEditor({
+  sal,
+  onSaved,
+}: {
+  sal: SalaryItem;
+  onSaved: () => void;
+}) {
+  const [bonus, setBonus] = useState(String(sal.bonus));
+  const [deduction, setDeduction] = useState(String(sal.deduction));
+  const [note, setNote] = useState(sal.note ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const effective = sal.amount + (parseFloat(bonus) || 0) - (parseFloat(deduction) || 0);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await updateSalaryAdjustment(
+        sal.id,
+        parseFloat(bonus) || 0,
+        parseFloat(deduction) || 0,
+        note
+      );
+      if (res.success) {
+        toast.success("Adjustment saved.");
+        onSaved();
+      } else {
+        toast.error(res.message || "Failed to save.");
+      }
+    } catch {
+      toast.error("An unexpected error occurred.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 bg-gray-50 rounded-xl p-3 flex flex-col gap-2.5 border border-gray-100">
+      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Adjustments for {sal.month}</p>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] text-gray-500 font-semibold">Bonus (৳)</label>
+          <input
+            type="number"
+            min="0"
+            value={bonus}
+            onChange={(e) => setBonus(e.target.value)}
+            className="ring-1 ring-gray-200 rounded-lg p-2 text-xs outline-none focus:ring-2 focus:ring-green-300 transition-all"
+            placeholder="0"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] text-gray-500 font-semibold">Deduction (৳)</label>
+          <input
+            type="number"
+            min="0"
+            value={deduction}
+            onChange={(e) => setDeduction(e.target.value)}
+            className="ring-1 ring-gray-200 rounded-lg p-2 text-xs outline-none focus:ring-2 focus:ring-red-300 transition-all"
+            placeholder="0"
+          />
+        </div>
+      </div>
+      <div className="flex flex-col gap-1">
+        <label className="text-[10px] text-gray-500 font-semibold">Note (optional)</label>
+        <input
+          type="text"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          className="ring-1 ring-gray-200 rounded-lg p-2 text-xs outline-none focus:ring-2 focus:ring-lamaSky transition-all"
+          placeholder="e.g. Eid bonus, late deduction…"
+        />
+      </div>
+      <div className="flex items-center justify-between pt-1">
+        <div className="text-xs font-bold text-gray-700">
+          Effective: <span className="text-gray-900">৳{effective.toLocaleString()}</span>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="bg-lamaSky hover:bg-[#38b1d8] text-white font-bold py-1.5 px-4 rounded-lg text-xs transition-colors disabled:opacity-50"
+        >
+          {saving ? "Saving…" : "Save"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function PayrollPortal({
   teacherId,
   unpaidSalaries,
@@ -37,6 +130,7 @@ export default function PayrollPortal({
 }: PayrollPortalProps) {
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
   const toggleSelect = (id: number) =>
@@ -51,7 +145,7 @@ export default function PayrollPortal({
 
   const subtotal = unpaidSalaries
     .filter((s) => selectedIds.includes(s.id))
-    .reduce((sum, s) => sum + s.amount, 0);
+    .reduce((sum, s) => sum + s.amount + s.bonus - s.deduction, 0);
 
   const handleConfirmPayment = async () => {
     if (selectedIds.length === 0) {
@@ -108,34 +202,85 @@ export default function PayrollPortal({
             <div className="divide-y divide-gray-50">
               {unpaidSalaries.map((sal) => {
                 const isSelected = selectedIds.includes(sal.id);
+                const hasAdjustment = sal.bonus > 0 || sal.deduction > 0;
+                const effective = sal.amount + sal.bonus - sal.deduction;
+                const isExpanded = expandedId === sal.id;
+
                 return (
-                  <div
-                    key={sal.id}
-                    onClick={() => toggleSelect(sal.id)}
-                    className={`flex items-center justify-between px-5 py-3.5 cursor-pointer select-none transition-colors ${
-                      isSelected ? "bg-[#f3fcff]" : "hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all ${
-                          isSelected ? "bg-lamaSky border-lamaSky" : "border-gray-300 bg-white"
-                        }`}
-                      >
-                        {isSelected && (
-                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
+                  <div key={sal.id} className="flex flex-col">
+                    <div
+                      className={`flex items-center justify-between px-5 py-3.5 cursor-pointer select-none transition-colors ${
+                        isSelected ? "bg-[#f3fcff]" : "hover:bg-gray-50"
+                      }`}
+                      onClick={() => toggleSelect(sal.id)}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all ${
+                            isSelected ? "bg-lamaSky border-lamaSky" : "border-gray-300 bg-white"
+                          }`}
+                        >
+                          {isSelected && (
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-bold text-gray-700 truncate">{sal.name}</p>
+                            {sal.type === "BONUS" && (
+                              <span className="text-[9px] font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full flex-shrink-0">BONUS</span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-gray-400">Period: {sal.month}</p>
+                          {sal.note && (
+                            <p className="text-[10px] text-amber-600 italic truncate">{sal.note}</p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs font-bold text-gray-700">{sal.name}</p>
-                        <p className="text-[10px] text-gray-400">Period: {sal.month}</p>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        <div className="text-right">
+                          {hasAdjustment ? (
+                            <>
+                              <p className="text-[10px] text-gray-400 line-through">৳{sal.amount.toLocaleString()}</p>
+                              <p className="text-sm font-extrabold text-gray-800">৳{effective.toLocaleString()}</p>
+                            </>
+                          ) : (
+                            <span className="text-sm font-extrabold text-gray-800">৳{sal.amount.toLocaleString()}</span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedId(isExpanded ? null : sal.id);
+                          }}
+                          title="Add/edit bonus or deduction"
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            hasAdjustment
+                              ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
+                              : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                          }`}
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
-                    <span className="text-sm font-extrabold text-gray-800">
-                      ৳{sal.amount.toLocaleString()}
-                    </span>
+
+                    {isExpanded && (
+                      <div className="px-5 pb-4">
+                        <AdjustmentEditor
+                          sal={sal}
+                          onSaved={() => {
+                            setExpandedId(null);
+                            router.refresh();
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 );
               })}

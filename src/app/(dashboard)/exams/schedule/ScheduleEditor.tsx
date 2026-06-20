@@ -12,8 +12,8 @@ export type SubjectRow = {
   entry: {
     id: number;
     date: string;
-    startTime: string;
-    endTime: string;
+    startTime: string | null;
+    endTime: string | null;
     room: string | null;
     totalMarks: number;
   } | null;
@@ -27,13 +27,15 @@ type RowState = {
   entryId: number | null;
 };
 
+// Parse a UTC ISO date string into a YYYY-MM-DD string without shifting timezone
 function toDateInput(iso: string) {
-  return new Date(iso).toISOString().split("T")[0];
+  return iso.split("T")[0];
 }
 
-function toTimeInput(iso: string) {
+function toTimeInput(iso: string | null) {
+  if (!iso) return "";
   const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
 }
 
 export default function ScheduleEditor({
@@ -98,7 +100,7 @@ export default function ScheduleEditor({
           toast("Entry removed.");
           setRows((prev) => ({
             ...prev,
-            [subjectId]: { date: "", startTime: "", endTime: "", room: "", totalMarks: 100, entryId: null },
+            [subjectId]: { date: "", startTime: "", endTime: "", totalMarks: 100, entryId: null },
           }));
           router.refresh();
         } else {
@@ -124,8 +126,12 @@ export default function ScheduleEditor({
               <th className="border border-gray-200 px-4 py-3 text-left">Subject</th>
               <th className="border border-gray-200 px-3 py-3 text-center w-28">Total Marks</th>
               <th className="border border-gray-200 px-3 py-3 text-left w-44">Date</th>
-              <th className="border border-gray-200 px-3 py-3 text-left w-36">Start</th>
-              <th className="border border-gray-200 px-3 py-3 text-left w-36">End</th>
+              <th className="border border-gray-200 px-3 py-3 text-left w-36">
+                Start <span className="normal-case font-normal text-gray-400">(opt)</span>
+              </th>
+              <th className="border border-gray-200 px-3 py-3 text-left w-36">
+                End <span className="normal-case font-normal text-gray-400">(opt)</span>
+              </th>
               <th className="border border-gray-200 px-2 py-3 w-10"></th>
             </tr>
           </thead>
@@ -203,7 +209,7 @@ export default function ScheduleEditor({
 
       <div className="flex items-center justify-between">
         <p className="text-xs text-gray-400">
-          {scheduledCount} of {subjects.length} subjects scheduled. Leave date empty to skip a subject.
+          {scheduledCount} of {subjects.length} subjects scheduled. Only date is required — times are optional.
         </p>
         <button
           onClick={handleSave}

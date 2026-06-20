@@ -2,7 +2,7 @@
 
 import prisma from "./prisma";
 import { revalidatePath } from "next/cache";
-import { SalaryStatus } from "@prisma/client";
+import { SalaryStatus, SalaryType } from "@prisma/client";
 
 const revalidateAll = () => {
   revalidatePath("/salaries/billing");
@@ -11,7 +11,6 @@ const revalidateAll = () => {
   revalidatePath("/fees/reports");
 };
 
-// Bill a single teacher for a given month
 export const billTeacherSalary = async (
   teacherId: string,
   month: string // "YYYY-MM"
@@ -50,14 +49,8 @@ export const billTeacherSalary = async (
   }
 };
 
-// Bill all teachers for a given month, skipping those already billed or with no salary set
-export const billAllTeacherSalaries = async (
-  currentState: any,
-  data: { month: string }
-) => {
+export const billAllTeacherSalaries = async (month: string) => {
   try {
-    const { month } = data;
-
     const teachers = await prisma.teacher.findMany({
       where: { monthlySalary: { not: null } },
       select: { id: true, name: true, surname: true, monthlySalary: true },
@@ -103,7 +96,25 @@ export const billAllTeacherSalaries = async (
   }
 };
 
-// Mark selected salary collections as PAID and auto-log as Expense
+export const updateSalaryAdjustment = async (
+  id: number,
+  bonus: number,
+  deduction: number,
+  note: string
+) => {
+  try {
+    await prisma.salaryCollection.update({
+      where: { id },
+      data: { bonus, deduction, note: note || null },
+    });
+    revalidateAll();
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false, message: "Failed to update adjustment." };
+  }
+};
+
 export const processSalaryPayment = async (
   teacherId: string,
   collectionIds: number[],
@@ -124,7 +135,10 @@ export const processSalaryPayment = async (
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const receiptNo = `SAL-${dateStr}-${randomSuffix}`;
 
-    const totalAmount = collections.reduce((s, c) => s + c.amount, 0);
+    const totalAmount = collections.reduce(
+      (s, c) => s + c.amount + c.bonus - c.deduction,
+      0
+    );
 
     await prisma.$transaction([
       ...collections.map((c) =>
@@ -132,7 +146,7 @@ export const processSalaryPayment = async (
           where: { id: c.id },
           data: {
             status: SalaryStatus.PAID,
-            paidAmount: c.amount,
+            paidAmount: c.amount + c.bonus - c.deduction,
             paidAt: new Date(),
             receiptNo: collections.length === 1 ? receiptNo : `${receiptNo}-${c.id}`,
             receivedById: cashierUsername,
@@ -156,7 +170,83 @@ export const processSalaryPayment = async (
   }
 };
 
-// Delete a salary collection record
+export const createBonusPackage = async (
+  name: string,
+  amount: number,
+  description: string
+) => {
+  try {
+    await prisma.bonusPackage.create({
+      data: { name, amount, description: description || null },
+    });
+    revalidateAll();
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false, message: "Failed to create bonus package." };
+  }
+};
+
+export const deleteBonusPackage = async (id: number) => {
+  try {
+    await prisma.bonusPackage.delete({ where: { id } });
+    revalidateAll();
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false, message: "Failed to delete bonus package." };
+  }
+};
+
+export const applyBonusPackage = async (packageId: number, month: string) => {
+  try {
+    const pkg = await prisma.bonusPackage.findUnique({ where: { id: packageId } });
+    if (!pkg) return { success: false, message: "Bonus package not found." };
+
+    const teachers = await prisma.teacher.findMany({
+      select: { id: true, name: true, surname: true },
+    });
+
+    if (teachers.length === 0)
+      return { success: false, message: "No teachers found." };
+
+    const existing = await prisma.salaryCollection.findMany({
+      where: { bonusPackageId: packageId, month },
+      select: { teacherId: true },
+    });
+    const alreadyApplied = new Set(existing.map((r) => r.teacherId));
+    const toApply = teachers.filter((t) => !alreadyApplied.has(t.id));
+
+    if (toApply.length === 0)
+      return {
+        success: true,
+        message: `All teachers already received "${pkg.name}" for ${month}.`,
+      };
+
+    await prisma.salaryCollection.createMany({
+      data: toApply.map((t) => ({
+        teacherId: t.id,
+        name: `${t.name} ${t.surname} — ${pkg.name}`,
+        amount: pkg.amount,
+        month,
+        type: SalaryType.BONUS,
+        bonusPackageId: packageId,
+        status: SalaryStatus.UNPAID,
+      })),
+    });
+
+    const skipped = alreadyApplied.size;
+    let message = `Applied "${pkg.name}" to ${toApply.length} teacher(s) for ${month}.`;
+    if (skipped > 0) message += ` Skipped ${skipped} already applied.`;
+
+    revalidateAll();
+    return { success: true, message };
+  } catch (err) {
+    console.error(err);
+    return { success: false, message: "Failed to apply bonus package." };
+  }
+};
+
 export const deleteSalaryCollection = async (id: number) => {
   try {
     await prisma.salaryCollection.delete({ where: { id } });

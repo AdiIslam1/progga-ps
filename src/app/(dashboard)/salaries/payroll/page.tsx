@@ -40,7 +40,7 @@ export default async function PayrollPage({
 
     const unpaidSalaries = allSalaries
       .filter((s) => s.status === "UNPAID")
-      .map((s) => ({ ...s, status: s.status as "UNPAID" }));
+      .map((s) => ({ ...s, status: s.status as "UNPAID", type: s.type as "SALARY" | "BONUS", bonus: s.bonus, deduction: s.deduction, note: s.note }));
 
     const paidSalaries = allSalaries
       .filter((s) => s.status === "PAID")

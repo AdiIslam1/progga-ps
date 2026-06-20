@@ -210,6 +210,21 @@ const StudentForm = ({
             )}
           </div>
 
+          {/* Section */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Section</label>
+            <input
+              type="text"
+              placeholder="e.g. A, B, Science, Arts"
+              className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+              {...register("section")}
+              defaultValue={data?.section ?? ""}
+            />
+            {errors.section?.message && (
+              <p className="text-xs text-red-400">{errors.section.message}</p>
+            )}
+          </div>
+
           {/* Custom Tuition Fee */}
           <div className="flex flex-col gap-1">
             <label className="text-xs text-gray-500">

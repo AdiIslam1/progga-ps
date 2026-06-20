@@ -55,6 +55,7 @@ export const studentSchema = z.object({
   birthday: z.coerce.date({ message: "Birthday is required!" }),
   sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
   classId: z.coerce.number().min(1, { message: "Class is required!" }),
+  section: z.string().optional(),
   guardianName: z.string().optional(),
   guardianPhone: z.string().optional(),
   customTuitionFee: z.coerce.number().min(0).optional().or(z.literal("")),

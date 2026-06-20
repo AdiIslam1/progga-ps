@@ -298,6 +298,7 @@ export const createStudent = async (
         sex: data.sex,
         birthday: data.birthday,
         classId: data.classId,
+        section: data.section || null,
         guardianName: data.guardianName || null,
         guardianPhone: data.guardianPhone || null,
         customTuitionFee: data.customTuitionFee !== "" && data.customTuitionFee != null ? Number(data.customTuitionFee) : null,
@@ -334,6 +335,7 @@ export const updateStudent = async (
         sex: data.sex,
         birthday: data.birthday,
         classId: data.classId,
+        section: data.section || null,
         guardianName: data.guardianName || null,
         guardianPhone: data.guardianPhone || null,
         customTuitionFee: data.customTuitionFee !== "" && data.customTuitionFee != null ? Number(data.customTuitionFee) : null,
@@ -711,12 +713,12 @@ export const saveBulkSchedule = async (
 ): Promise<{ success: boolean }> => {
   try {
     for (const entry of entries) {
-      if (!entry.date || !entry.startTime || !entry.endTime) continue;
+      if (!entry.date) continue;
 
       const data = {
         date: dateToDateTime(entry.date),
-        startTime: timeToDate(entry.startTime),
-        endTime: timeToDate(entry.endTime),
+        startTime: entry.startTime ? timeToDate(entry.startTime) : null,
+        endTime: entry.endTime ? timeToDate(entry.endTime) : null,
         room: entry.room || null,
         totalMarks: entry.totalMarks,
       };
