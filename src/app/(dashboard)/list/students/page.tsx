@@ -7,6 +7,7 @@ import ClickableRow from "@/components/ClickableRow";
 import StudentActionCell from "@/components/StudentActionCell";
 import Link from "next/link";
 import { Suspense } from "react";
+import { Pencil } from "lucide-react";
 
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
@@ -39,7 +40,7 @@ const StudentListPage = async ({
     <ClickableRow
       key={item.id}
       href={`/list/students/${item.id}`}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaSkyLight"
+      className="text-sm hover:bg-blue-50 transition-colors"
     >
       <td className="flex items-center gap-3 p-4">
         <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0 hidden xl:block">
@@ -58,7 +59,7 @@ const StudentListPage = async ({
       </td>
       <td className="hidden md:table-cell text-gray-600 text-xs font-mono">{item.studentId}</td>
       <td className="hidden md:table-cell">
-        <span className="bg-lamaSkyLight text-lamaSky text-xs font-medium px-2 py-0.5 rounded-full">
+        <span className="bg-blue-50 text-blue-600 text-xs font-semibold px-2.5 py-0.5 rounded-full">
           Class {item.class.name}
         </span>
       </td>
@@ -67,8 +68,8 @@ const StudentListPage = async ({
       {role === "admin" && (
         <StudentActionCell>
           <Link href={`/list/students/${item.id}/edit`}>
-            <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
-              <Image src="/update.png" alt="Edit" width={16} height={16} />
+            <button className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors">
+              <Pencil size={13} />
             </button>
           </Link>
           <FormContainer table="student" type="delete" id={item.id} />
@@ -122,12 +123,12 @@ const StudentListPage = async ({
   ]);
 
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+    <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 flex-1 m-4 mt-0 overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-5 border-b border-slate-100">
         <div>
-          <h1 className="text-lg font-semibold">All Students</h1>
-          <p className="text-xs text-gray-400">{count} student{count !== 1 ? "s" : ""} total</p>
+          <h1 className="text-lg font-semibold text-slate-800">All Students</h1>
+          <p className="text-xs text-slate-400 mt-0.5">{count} student{count !== 1 ? "s" : ""} total</p>
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <TableSearch />
@@ -136,8 +137,8 @@ const StudentListPage = async ({
           </Suspense>
           {role === "admin" && (
             <Link href="/list/students/new">
-              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-                <Image src="/create.png" alt="Add student" width={16} height={16} />
+              <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
+                + Add Student
               </button>
             </Link>
           )}

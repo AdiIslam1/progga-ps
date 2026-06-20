@@ -74,7 +74,7 @@ const ExamListPage = async ({
                 className="flex items-center justify-between gap-4 border border-gray-100 rounded-xl p-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-lamaPurpleLight flex items-center justify-center text-purple-600 font-bold text-sm flex-shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-sm flex-shrink-0">
                     {exam.title[0]}
                   </div>
                   <div className="min-w-0">
@@ -90,7 +90,7 @@ const ExamListPage = async ({
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <Link
                     href={`/exams/schedule?examId=${exam.id}`}
-                    className="text-xs font-semibold text-lamaSky border border-lamaSky px-3 py-1.5 rounded-lg hover:bg-lamaSkyLight transition-colors"
+                    className="text-xs font-semibold text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
                   >
                     View Schedule
                   </Link>

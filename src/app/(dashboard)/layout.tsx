@@ -26,15 +26,15 @@ export default function DashboardLayout({
                 height={32}
                 className="rounded-full flex-shrink-0"
               />
-              <span className="font-bold text-sm leading-tight">
-                Progga Preparatory School
+              <span className="font-bold text-sm leading-tight text-white truncate">
+                Progga PS
               </span>
             </Link>
             <Menu />
           </div>
         </SidebarDrawer>
 
-        <div className="flex-1 min-w-0 bg-[#F7F8FA] overflow-y-auto flex flex-col pb-8">
+        <div className="flex-1 min-w-0 bg-slate-50 overflow-y-auto flex flex-col pb-8">
           <Navbar />
           {children}
         </div>

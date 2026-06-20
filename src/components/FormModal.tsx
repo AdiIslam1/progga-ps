@@ -9,11 +9,11 @@ import {
 } from "@/lib/actions";
 import dynamic from "next/dynamic";
 import { createPortal } from "react-dom";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { toast } from "react-toastify";
+import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { FormContainerProps } from "./FormContainer";
 
 const deleteActionMap = {
@@ -111,13 +111,13 @@ const FormModal = ({
   id,
   relatedData,
 }: FormContainerProps & { relatedData?: any }) => {
-  const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
-  const bgColor =
+  const triggerClass =
     type === "create"
-      ? "bg-lamaYellow"
+      ? "w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
       : type === "update"
-      ? "bg-lamaSky"
-      : "bg-lamaPurple";
+      ? "w-7 h-7 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg"
+      : "w-7 h-7 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg";
+  const TriggerIcon = type === "create" ? Plus : type === "update" ? Pencil : Trash2;
 
   const [open, setOpen] = useState(false);
 
@@ -138,13 +138,17 @@ const FormModal = ({
     }, [state, router]);
 
     return type === "delete" && id ? (
-      <form action={formAction} className="p-4 flex flex-col gap-4">
+      <form action={formAction} className="p-6 flex flex-col gap-5">
         <input type="text | number" name="id" value={id} hidden />
-        <span className="text-center font-medium">
-          All data will be lost. Are you sure you want to delete this {table}?
-        </span>
-        <button className="bg-red-700 text-white py-2 px-4 rounded-md border-none w-max self-center">
-          Delete
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
+            <Trash2 size={22} className="text-red-500" />
+          </div>
+          <p className="font-semibold text-slate-800">Delete {table}?</p>
+          <p className="text-sm text-slate-500">All data will be permanently lost. This action cannot be undone.</p>
+        </div>
+        <button className="bg-red-600 hover:bg-red-700 text-white py-2.5 px-6 rounded-xl font-semibold text-sm w-max self-center transition-colors">
+          Yes, delete
         </button>
       </form>
     ) : type === "create" || type === "update" ? (
@@ -157,22 +161,23 @@ const FormModal = ({
   return (
     <>
       <button
-        className={`${size} flex items-center justify-center rounded-full ${bgColor}`}
+        className={`flex items-center justify-center transition-colors ${triggerClass}`}
         onClick={() => setOpen(true)}
+        title={type}
       >
-        <Image src={`/${type}.png`} alt="" width={16} height={16} />
+        <TriggerIcon size={type === "create" ? 16 : 14} />
       </button>
       {open &&
         createPortal(
-          <div className="w-screen h-screen fixed left-0 top-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-            <div className="bg-white p-4 rounded-md relative w-[90%] md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%] max-h-[90vh] overflow-y-auto">
-              <Form />
-              <div
-                className="absolute top-4 right-4 cursor-pointer"
+          <div className="w-screen h-screen fixed left-0 top-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl relative w-full md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%] max-h-[90vh] overflow-y-auto">
+              <button
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors z-10"
                 onClick={() => setOpen(false)}
               >
-                <Image src="/close.png" alt="" width={14} height={14} />
-              </div>
+                <X size={16} />
+              </button>
+              <Form />
             </div>
           </div>,
           document.body

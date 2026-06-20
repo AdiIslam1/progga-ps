@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
+import { AlertCircle } from "lucide-react";
 
 const PendingFeesCard = async () => {
   const result = await prisma.feeCollection.aggregate({
@@ -12,16 +13,18 @@ const PendingFeesCard = async () => {
   const total = result._sum.amount ?? 0;
 
   return (
-    <div className="rounded-2xl bg-lamaYellow p-4 flex-1 min-w-[130px]">
-      <div className="flex justify-between items-center">
-        <span className="text-[10px] bg-white px-2 py-1 rounded-full text-orange-700">
-          Pending
-        </span>
+    <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-5 flex-1 min-w-[140px] hover:shadow-md transition-shadow border-l-4 border-amber-500">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Pending Fees</p>
+          <h2 className="text-3xl font-bold text-slate-800 mt-1">{count}</h2>
+        </div>
+        <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+          <AlertCircle size={20} className="text-amber-600" />
+        </div>
       </div>
-      <h1 className="text-2xl font-semibold my-4">{count}</h1>
-      <h2 className="text-sm font-medium text-gray-500">Unpaid Collections</h2>
-      <p className="text-xs text-gray-500 mt-1">৳{total.toLocaleString()} outstanding</p>
-      <Link href="/fees/ledger" className="text-xs text-blue-600 hover:underline mt-1 block">
+      <p className="text-[11px] text-slate-400 mt-3">৳{total.toLocaleString()} outstanding</p>
+      <Link href="/fees/ledger" className="text-[11px] text-blue-600 hover:underline mt-1 block">
         View Ledger →
       </Link>
     </div>

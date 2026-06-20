@@ -1,34 +1,30 @@
 import { currentUser } from "@/lib/auth-server";
-import Image from "next/image";
 import HamburgerButton from "./HamburgerButton";
 import UserNav from "./UserNav";
+import { Search, Bell } from "lucide-react";
 
 const Navbar = async () => {
   const user = await currentUser();
 
   return (
-    <div className="flex items-center justify-between p-4 gap-3">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
+    <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200 shadow-sm gap-4 sticky top-0 z-30">
+      <div className="flex items-center gap-4 flex-1 min-w-0">
         <HamburgerButton />
-        <div className="hidden md:flex items-center gap-2 text-xs rounded-full ring-[1.5px] ring-gray-300 px-2 flex-1 max-w-xs">
-          <Image src="/search.png" alt="" width={14} height={14} className="flex-shrink-0" />
+        <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 flex-1 max-w-sm">
+          <Search size={14} className="text-slate-400 flex-shrink-0" />
           <input
             type="text"
             placeholder="Search..."
-            className="p-2 bg-transparent outline-none w-full"
+            className="bg-transparent outline-none text-sm text-slate-700 placeholder-slate-400 w-full"
           />
         </div>
       </div>
-      <div className="flex items-center gap-4 flex-shrink-0">
-        <div className="bg-white rounded-full w-7 h-7 flex items-center justify-center cursor-pointer">
-          <Image src="/message.png" alt="" width={20} height={20} />
-        </div>
-        <div className="bg-white rounded-full w-7 h-7 flex items-center justify-center cursor-pointer relative">
-          <Image src="/announcement.png" alt="" width={20} height={20} />
-          <div className="absolute -top-3 -right-3 w-5 h-5 flex items-center justify-center bg-purple-500 text-white rounded-full text-xs">
-            1
-          </div>
-        </div>
+
+      <div className="flex items-center gap-3 flex-shrink-0">
+        <button className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors">
+          <Bell size={17} className="text-slate-600" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full" />
+        </button>
         <UserNav key={user?.id} />
       </div>
     </div>
