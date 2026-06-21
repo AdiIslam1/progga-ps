@@ -113,7 +113,7 @@ function AdjustmentEditor({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="bg-lamaSky hover:bg-[#38b1d8] text-white font-bold py-1.5 px-4 rounded-lg text-xs transition-colors disabled:opacity-50"
+          className="bg-lamaSky hover:bg-[#1e40af] text-white font-bold py-1.5 px-4 rounded-lg text-xs transition-colors disabled:opacity-50"
         >
           {saving ? "Saving…" : "Save"}
         </button>
@@ -185,7 +185,7 @@ export default function PayrollPortal({
           {unpaidSalaries.length > 0 && (
             <button
               onClick={selectAll}
-              className="text-xs text-lamaSky hover:text-[#38b1d8] font-bold transition-colors"
+              className="text-xs text-lamaSky hover:text-[#1e40af] font-bold transition-colors"
             >
               {selectedIds.length === unpaidSalaries.length ? "Deselect All" : "Select All"}
             </button>
@@ -300,7 +300,7 @@ export default function PayrollPortal({
               <button
                 onClick={handleConfirmPayment}
                 disabled={loading || selectedIds.length === 0}
-                className="w-full bg-lamaSky hover:bg-[#38b1d8] text-white font-bold py-3 px-4 rounded-xl transition-all text-sm shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-lamaSky hover:bg-[#1e40af] text-white font-bold py-3 px-4 rounded-xl transition-all text-sm shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>

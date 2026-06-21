@@ -7,6 +7,7 @@ interface StudentCard {
   studentId: string | number;
   className: string;
   section: string | null;
+  rollNo: number | null;
 }
 
 interface AdmitCardPrintButtonProps {
@@ -50,11 +51,6 @@ export default function AdmitCardPrintButton({ students, examTitle, year }: Admi
         <span class="fv">${s.name} ${s.surname}</span>
         <span class="fd"></span>
       </div>
-      <div class="field">
-        <span class="fl">Roll / ID</span>
-        <span class="fv">${s.studentId}</span>
-        <span class="fd"></span>
-      </div>
       <div class="field-row">
         <div class="field half">
           <span class="fl">Class</span>
@@ -64,6 +60,11 @@ export default function AdmitCardPrintButton({ students, examTitle, year }: Admi
         <div class="field half">
           <span class="fl">Section</span>
           <span class="fv">${s.section || "—"}</span>
+          <span class="fd"></span>
+        </div>
+        <div class="field half">
+          <span class="fl">Roll No</span>
+          <span class="fv">${s.rollNo ?? "—"}</span>
           <span class="fd"></span>
         </div>
       </div>
@@ -220,7 +221,7 @@ ${pages.map((pg) => `<div class="page">${pg.map(cardHtml).join("")}</div>`).join
   return (
     <button
       onClick={handlePrint}
-      className="flex items-center gap-2 bg-lamaSky text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#38b1d8] transition-colors"
+      className="flex items-center gap-2 bg-lamaSky text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#1e40af] transition-colors"
     >
       🖨️ Print All Cards
     </button>

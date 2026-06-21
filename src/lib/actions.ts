@@ -299,11 +299,57 @@ export const createStudent = async (
         birthday: data.birthday,
         classId: data.classId,
         section: data.section || null,
+        fatherName: data.fatherName || null,
+        motherName: data.motherName || null,
+        rollNo: data.rollNo !== "" && data.rollNo != null ? Number(data.rollNo) : null,
+        group: data.group || null,
+        shift: data.shift || null,
         guardianName: data.guardianName || null,
         guardianPhone: data.guardianPhone || null,
         customTuitionFee: data.customTuitionFee !== "" && data.customTuitionFee != null ? Number(data.customTuitionFee) : null,
+        admissionYear: data.admissionYear !== "" && data.admissionYear != null ? Number(data.admissionYear) : null,
+        nameBn: data.nameBn || null,
+        birthRegNo: data.birthRegNo || null,
+        prevSchoolName: data.prevSchoolName || null,
+        prevSchoolClass: data.prevSchoolClass || null,
+        prevSchoolSection: data.prevSchoolSection || null,
+        prevSchoolRoll: data.prevSchoolRoll || null,
+        prevTutors: data.prevTutors || null,
+        fatherNameEn: data.fatherNameEn || null,
+        fatherPhone: data.fatherPhone || null,
+        fatherNid: data.fatherNid || null,
+        fatherAddress: data.fatherAddress || null,
+        fatherUpazila: data.fatherUpazila || null,
+        fatherWorkAddress: data.fatherWorkAddress || null,
+        motherNameEn: data.motherNameEn || null,
+        motherNid: data.motherNid || null,
+        religion: data.religion || null,
+        birthVillage: data.birthVillage || null,
+        birthDistrict: data.birthDistrict || null,
+        birthUpazila: data.birthUpazila || null,
+        birthThana: data.birthThana || null,
+        permVillage: data.permVillage || null,
+        permDistrict: data.permDistrict || null,
+        permUpazila: data.permUpazila || null,
+        permThana: data.permThana || null,
+        prevPassMarks: data.prevPassMarks !== "" && data.prevPassMarks != null ? Number(data.prevPassMarks) : null,
+        prevSubjectCount: data.prevSubjectCount !== "" && data.prevSubjectCount != null ? Number(data.prevSubjectCount) : null,
+        prevSession: data.prevSession || null,
       },
     });
+
+    const admissionFeeAmount = Number(data.admissionFee);
+    if (admissionFeeAmount > 0) {
+      const year = data.admissionYear ? Number(data.admissionYear) : new Date().getFullYear();
+      await prisma.feeCollection.create({
+        data: {
+          studentId: newId,
+          name: `Admission Fee ${year}`,
+          amount: admissionFeeAmount,
+          status: "UNPAID",
+        },
+      });
+    }
 
     revalidatePath("/list/students");
     return { success: true, error: false, id: newId };
@@ -336,9 +382,42 @@ export const updateStudent = async (
         birthday: data.birthday,
         classId: data.classId,
         section: data.section || null,
+        fatherName: data.fatherName || null,
+        motherName: data.motherName || null,
+        rollNo: data.rollNo !== "" && data.rollNo != null ? Number(data.rollNo) : null,
+        group: data.group || null,
+        shift: data.shift || null,
         guardianName: data.guardianName || null,
         guardianPhone: data.guardianPhone || null,
         customTuitionFee: data.customTuitionFee !== "" && data.customTuitionFee != null ? Number(data.customTuitionFee) : null,
+        admissionYear: data.admissionYear !== "" && data.admissionYear != null ? Number(data.admissionYear) : null,
+        nameBn: data.nameBn || null,
+        birthRegNo: data.birthRegNo || null,
+        prevSchoolName: data.prevSchoolName || null,
+        prevSchoolClass: data.prevSchoolClass || null,
+        prevSchoolSection: data.prevSchoolSection || null,
+        prevSchoolRoll: data.prevSchoolRoll || null,
+        prevTutors: data.prevTutors || null,
+        fatherNameEn: data.fatherNameEn || null,
+        fatherPhone: data.fatherPhone || null,
+        fatherNid: data.fatherNid || null,
+        fatherAddress: data.fatherAddress || null,
+        fatherUpazila: data.fatherUpazila || null,
+        fatherWorkAddress: data.fatherWorkAddress || null,
+        motherNameEn: data.motherNameEn || null,
+        motherNid: data.motherNid || null,
+        religion: data.religion || null,
+        birthVillage: data.birthVillage || null,
+        birthDistrict: data.birthDistrict || null,
+        birthUpazila: data.birthUpazila || null,
+        birthThana: data.birthThana || null,
+        permVillage: data.permVillage || null,
+        permDistrict: data.permDistrict || null,
+        permUpazila: data.permUpazila || null,
+        permThana: data.permThana || null,
+        prevPassMarks: data.prevPassMarks !== "" && data.prevPassMarks != null ? Number(data.prevPassMarks) : null,
+        prevSubjectCount: data.prevSubjectCount !== "" && data.prevSubjectCount != null ? Number(data.prevSubjectCount) : null,
+        prevSession: data.prevSession || null,
       },
     });
     revalidatePath("/list/students");
@@ -376,7 +455,13 @@ export const createExam = async (
 ) => {
   try {
     await prisma.exam.create({
-      data: { title: data.title },
+      data: {
+        title: data.title,
+        semesterNumber: data.semesterNumber !== "" && data.semesterNumber != null ? Number(data.semesterNumber) : null,
+        year: data.year !== "" && data.year != null ? Number(data.year) : null,
+        semStartDate: data.semStartDate ? new Date(data.semStartDate) : null,
+        semEndDate: data.semEndDate ? new Date(data.semEndDate) : null,
+      },
     });
 
     return { success: true, error: false };
@@ -393,7 +478,13 @@ export const updateExam = async (
   try {
     await prisma.exam.update({
       where: { id: data.id },
-      data: { title: data.title },
+      data: {
+        title: data.title,
+        semesterNumber: data.semesterNumber !== "" && data.semesterNumber != null ? Number(data.semesterNumber) : null,
+        year: data.year !== "" && data.year != null ? Number(data.year) : null,
+        semStartDate: data.semStartDate ? new Date(data.semStartDate) : null,
+        semEndDate: data.semEndDate ? new Date(data.semEndDate) : null,
+      },
     });
 
     return { success: true, error: false };
@@ -755,6 +846,32 @@ export const resetPassword = async (
       await prisma.admin.update({ where: { id }, data: { password: hashedPassword } });
     }
 
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false };
+  }
+};
+
+export const upsertReportCard = async (
+  studentId: string,
+  academicYear: string,
+  data: {
+    comments?: string;
+    moralBehavior?: string;
+    sports?: boolean;
+    culturalFunction?: boolean;
+    scoutBnc?: boolean;
+    mathOlympiad?: boolean;
+  }
+): Promise<{ success: boolean }> => {
+  try {
+    await prisma.reportCard.upsert({
+      where: { studentId_academicYear: { studentId, academicYear } },
+      create: { studentId, academicYear, ...data },
+      update: data,
+    });
+    revalidatePath("/report-cards");
     return { success: true };
   } catch (err) {
     console.error(err);

@@ -75,6 +75,7 @@ export default async function AdmitCardsPage({
               studentId: s.studentId,
               className: s.class?.name ?? "",
               section: s.section ?? null,
+              rollNo: s.rollNo ?? null,
             }))}
             examTitle={selectedExam.title}
             year={year}
@@ -115,7 +116,7 @@ export default async function AdmitCardsPage({
           </div>
           <button
             type="submit"
-            className="bg-lamaSky text-white font-semibold py-2.5 px-5 rounded-xl text-sm hover:bg-[#38b1d8] transition-colors"
+            className="bg-lamaSky text-white font-semibold py-2.5 px-5 rounded-xl text-sm hover:bg-[#1e40af] transition-colors"
           >
             Load
           </button>
@@ -164,16 +165,11 @@ export default async function AdmitCardsPage({
 
                 {/* Student info */}
                 <div className="flex flex-col gap-1.5 relative z-10 flex-1">
-                  {[
-                    { label: "Name", value: `${student.name} ${student.surname}` },
-                    { label: "Roll / ID", value: student.studentId },
-                  ].map(({ label, value }) => (
-                    <div key={label}>
-                      <p className="text-[8px] font-bold text-gray-500 uppercase tracking-wide">{label}</p>
-                      <p className="text-[11px] font-bold text-gray-900">{value}</p>
-                      <div className="border-b border-dashed border-gray-300 mt-0.5" />
-                    </div>
-                  ))}
+                  <div>
+                    <p className="text-[8px] font-bold text-gray-500 uppercase tracking-wide">Name</p>
+                    <p className="text-[11px] font-bold text-gray-900">{student.name} {student.surname}</p>
+                    <div className="border-b border-dashed border-gray-300 mt-0.5" />
+                  </div>
                   <div className="flex gap-3">
                     <div className="flex-1">
                       <p className="text-[8px] font-bold text-gray-500 uppercase tracking-wide">Class</p>
@@ -183,6 +179,11 @@ export default async function AdmitCardsPage({
                     <div className="flex-1">
                       <p className="text-[8px] font-bold text-gray-500 uppercase tracking-wide">Section</p>
                       <p className="text-[11px] font-bold text-gray-900">{student.section || "—"}</p>
+                      <div className="border-b border-dashed border-gray-300 mt-0.5" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[8px] font-bold text-gray-500 uppercase tracking-wide">Roll No</p>
+                      <p className="text-[11px] font-bold text-gray-900">{student.rollNo ?? "—"}</p>
                       <div className="border-b border-dashed border-gray-300 mt-0.5" />
                     </div>
                   </div>

@@ -250,7 +250,7 @@ export default async function LedgerPage({
           {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
           {typeFilter && <input type="hidden" name="type" value={typeFilter} />}
           <button type="submit"
-            className="bg-lamaSky hover:bg-[#38b1d8] text-white font-bold py-2 px-4 rounded-xl text-xs transition-colors shadow-sm">
+            className="bg-lamaSky hover:bg-[#1e40af] text-white font-bold py-2 px-4 rounded-xl text-xs transition-colors shadow-sm">
             Search
           </button>
         </form>

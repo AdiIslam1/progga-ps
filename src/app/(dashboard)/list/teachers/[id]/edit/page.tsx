@@ -50,7 +50,7 @@ export default async function EditTeacherPage({ params }: { params: { id: string
         <span className="text-xs font-bold text-gray-800">Edit</span>
       </div>
 
-      <div className="max-w-2xl mx-auto p-6">
+      <div className="max-w-5xl mx-auto p-6">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
           <TeacherForm type="update" data={teacherData} relatedData={{ subjects }} />
         </div>

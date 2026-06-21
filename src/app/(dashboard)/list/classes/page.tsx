@@ -120,7 +120,7 @@ const renderRow = (item: ClassList) => (
   ]);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 flex-1 m-4 mt-0 overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 m-4 mt-0">
       {/* TOP */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-5 border-b border-slate-100">
         <h1 className="text-lg font-semibold text-slate-800">All Classes</h1>

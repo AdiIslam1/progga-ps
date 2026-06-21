@@ -98,7 +98,7 @@ export default function RoutineTable({
             {hasData && (
               <button
                 onClick={() => window.print()}
-                className="no-print flex items-center gap-1.5 bg-lamaSky text-white text-xs font-semibold px-3 py-2 rounded-xl hover:bg-[#38b1d8] transition-colors"
+                className="no-print flex items-center gap-1.5 bg-lamaSky text-white text-xs font-semibold px-3 py-2 rounded-xl hover:bg-[#1e40af] transition-colors"
               >
                 <PrintIcon />
                 Print

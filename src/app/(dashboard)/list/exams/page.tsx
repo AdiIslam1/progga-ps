@@ -34,7 +34,7 @@ const ExamListPage = async ({
           distinct: ["classId"],
         },
       },
-      orderBy: { id: "desc" },
+      orderBy: [{ year: "desc" }, { semesterNumber: "asc" }, { id: "desc" }],
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
@@ -42,7 +42,7 @@ const ExamListPage = async ({
   ]);
 
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+    <div className="bg-white p-4 rounded-md m-4 mt-0">
       {/* Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-4">
         <div>
@@ -80,8 +80,9 @@ const ExamListPage = async ({
                   <div className="min-w-0">
                     <p className="font-semibold text-gray-800 truncate">{exam.title}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
+                      {exam.semesterNumber ? `Semester ${exam.semesterNumber}` : "No semester"}{exam.year ? ` · ${exam.year}` : ""}{" · "}
                       {classCount > 0
-                        ? `${classCount} class${classCount !== 1 ? "es" : ""} scheduled · ${entryCount} subject entr${entryCount !== 1 ? "ies" : "y"}`
+                        ? `${classCount} class${classCount !== 1 ? "es" : ""} · ${entryCount} subject entr${entryCount !== 1 ? "ies" : "y"}`
                         : "No schedule set yet"}
                     </p>
                   </div>
@@ -96,7 +97,14 @@ const ExamListPage = async ({
                   </Link>
                   {role === "admin" && (
                     <>
-                      <FormContainer table="exam" type="update" data={{ id: exam.id, title: exam.title }} />
+                      <FormContainer table="exam" type="update" data={{
+                        id: exam.id,
+                        title: exam.title,
+                        semesterNumber: exam.semesterNumber,
+                        year: exam.year,
+                        semStartDate: exam.semStartDate,
+                        semEndDate: exam.semEndDate,
+                      }} />
                       <FormContainer table="exam" type="delete" id={exam.id} />
                     </>
                   )}

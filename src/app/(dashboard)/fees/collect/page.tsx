@@ -191,7 +191,7 @@ export default async function CollectFeesPage({
           />
           <button
             type="submit"
-            className="bg-lamaSky hover:bg-[#38b1d8] text-white font-bold py-2.5 px-5 rounded-xl text-sm shadow-sm transition-colors"
+            className="bg-lamaSky hover:bg-[#1e40af] text-white font-bold py-2.5 px-5 rounded-xl text-sm shadow-sm transition-colors"
           >
             Search
           </button>

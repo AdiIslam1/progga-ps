@@ -116,7 +116,7 @@ export default function SalaryBillingCalendar({
         <button
           onClick={handleBill}
           disabled={loading}
-          className="w-full bg-lamaSky hover:bg-[#38b1d8] text-white font-bold py-3 px-4 rounded-xl text-sm transition-all shadow-sm hover:shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full bg-lamaSky hover:bg-[#1e40af] text-white font-bold py-3 px-4 rounded-xl text-sm transition-all shadow-sm hover:shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading ? (
             <>

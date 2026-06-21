@@ -40,7 +40,7 @@ const ClassSubjectsPage = async ({
   ]);
 
   return (
-    <div className="bg-white p-6 rounded-md flex-1 m-4 mt-0">
+    <div className="bg-white p-6 rounded-md m-4 mt-0">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>

@@ -139,7 +139,7 @@ export default function PackageForm({ classes }: { classes: ClassItem[] }) {
         type="submit"
         disabled={loading}
         className={`w-full text-white font-bold py-2.5 rounded-xl text-sm shadow-sm transition-all disabled:opacity-50 ${
-          type === "TUITION" ? "bg-lamaSky hover:bg-[#38b1d8]" : "bg-lamaPurple hover:bg-[#a394f7]"
+          type === "TUITION" ? "bg-lamaSky hover:bg-[#1e40af]" : "bg-lamaPurple hover:bg-[#a394f7]"
         }`}
       >
         {loading ? "Creating…" : "Create Package"}

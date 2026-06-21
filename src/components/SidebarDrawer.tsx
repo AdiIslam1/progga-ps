@@ -22,7 +22,7 @@ export default function SidebarDrawer({ children }: { children: React.ReactNode 
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 md:hidden print:hidden ${
           open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setOpen(false)}
@@ -31,7 +31,7 @@ export default function SidebarDrawer({ children }: { children: React.ReactNode 
       {/* Sidebar panel */}
       <aside
         className={`
-          group/sidebar
+          group/sidebar print:hidden
           fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 overflow-y-auto transition-transform duration-300
           md:static md:translate-x-0 md:w-60 xl:w-64
           ${open ? "translate-x-0 mobile-open" : "-translate-x-full"}

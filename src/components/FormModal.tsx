@@ -170,7 +170,7 @@ const FormModal = ({
       {open &&
         createPortal(
           <div className="w-screen h-screen fixed left-0 top-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl relative w-full md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%] max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl relative w-[95%] max-w-5xl max-h-[90vh] overflow-y-auto">
               <button
                 className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors z-10"
                 onClick={() => setOpen(false)}

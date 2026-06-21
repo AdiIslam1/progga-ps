@@ -214,7 +214,7 @@ export default function ScheduleEditor({
         <button
           onClick={handleSave}
           disabled={isPending}
-          className="bg-lamaSky text-white font-semibold py-2.5 px-6 rounded-xl text-sm hover:bg-[#38b1d8] transition-colors disabled:opacity-50"
+          className="bg-lamaSky text-white font-semibold py-2.5 px-6 rounded-xl text-sm hover:bg-[#1e40af] transition-colors disabled:opacity-50"
         >
           {isPending ? "Saving…" : "Save Schedule"}
         </button>

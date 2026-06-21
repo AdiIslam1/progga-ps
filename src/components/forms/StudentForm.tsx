@@ -244,6 +244,48 @@ const StudentForm = ({
           </div>
 
           <InputField
+            label="Father's Name"
+            name="fatherName"
+            defaultValue={data?.fatherName}
+            register={register}
+            error={errors.fatherName}
+          />
+          <InputField
+            label="Mother's Name"
+            name="motherName"
+            defaultValue={data?.motherName}
+            register={register}
+            error={errors.motherName}
+          />
+          <InputField
+            label="Roll No"
+            name="rollNo"
+            defaultValue={data?.rollNo ?? ""}
+            register={register}
+            error={errors.rollNo}
+            type="number"
+          />
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Group</label>
+            <input
+              type="text"
+              placeholder="e.g. COMMON, SCIENCE"
+              className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+              {...register("group")}
+              defaultValue={data?.group ?? ""}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Shift</label>
+            <input
+              type="text"
+              placeholder="e.g. Day, Morning"
+              className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+              {...register("shift")}
+              defaultValue={data?.shift ?? ""}
+            />
+          </div>
+          <InputField
             label="Guardian Name"
             name="guardianName"
             defaultValue={data?.guardianName}
@@ -260,6 +302,23 @@ const StudentForm = ({
         </div>
       </section>
 
+      {/* Admission Details */}
+      <section>
+        <h3 className="text-sm font-semibold text-gray-600 mb-3 pb-1 border-b border-gray-100">Admission Details</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <InputField label="Father's Name (English)" name="fatherNameEn" defaultValue={data?.fatherNameEn} register={register} error={errors.fatherNameEn} />
+          <InputField label="Father's Phone" name="fatherPhone" defaultValue={data?.fatherPhone} register={register} error={errors.fatherPhone} />
+          <InputField label="Father's NID" name="fatherNid" defaultValue={data?.fatherNid} register={register} error={errors.fatherNid} />
+          <InputField label="Father's Address" name="fatherAddress" defaultValue={data?.fatherAddress} register={register} error={errors.fatherAddress} />
+          <InputField label="Father's Upazila/Thana" name="fatherUpazila" defaultValue={data?.fatherUpazila} register={register} error={errors.fatherUpazila} />
+          <InputField label="Father's Work Address" name="fatherWorkAddress" defaultValue={data?.fatherWorkAddress} register={register} error={errors.fatherWorkAddress} />
+          <InputField label="Mother's Name (English)" name="motherNameEn" defaultValue={data?.motherNameEn} register={register} error={errors.motherNameEn} />
+          <InputField label="Mother's NID" name="motherNid" defaultValue={data?.motherNid} register={register} error={errors.motherNid} />
+          <InputField label="Birth Registration No." name="birthRegNo" defaultValue={data?.birthRegNo} register={register} error={errors.birthRegNo} />
+          <InputField label="Religion" name="religion" defaultValue={data?.religion} register={register} error={errors.religion} />
+        </div>
+      </section>
+
       {data && (
         <input type="hidden" {...register("id")} defaultValue={data.id} />
       )}
@@ -273,7 +332,7 @@ const StudentForm = ({
       <button
         type="submit"
         disabled={submitting}
-        className="bg-blue-500 hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed text-white p-2 rounded-md font-medium transition-colors"
+        className="bg-blue-700 hover:bg-blue-800 disabled:opacity-60 disabled:cursor-not-allowed text-white p-2 rounded-md font-medium transition-colors"
       >
         {submitting
           ? type === "create" ? "Creating..." : "Saving..."

@@ -374,7 +374,7 @@ export default function NoticeBoardPortal({ role, classes, students, currentConf
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-lamaSky hover:bg-[#38b1d8] text-white font-bold py-2.5 rounded-xl text-sm transition-all shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-lamaSky hover:bg-[#1e40af] text-white font-bold py-2.5 rounded-xl text-sm transition-all shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? "Sending..." : "Send SMS"}
             </button>
@@ -529,7 +529,7 @@ export default function NoticeBoardPortal({ role, classes, students, currentConf
             <button
               type="submit"
               disabled={gatewayLoading}
-              className="bg-lamaSky hover:bg-[#38b1d8] text-white font-bold py-2.5 px-6 rounded-xl text-sm transition-all shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 w-full"
+              className="bg-lamaSky hover:bg-[#1e40af] text-white font-bold py-2.5 px-6 rounded-xl text-sm transition-all shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 w-full"
             >
               {gatewayLoading ? "Saving..." : "Save Gateway Settings"}
             </button>

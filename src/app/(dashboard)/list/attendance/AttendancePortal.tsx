@@ -205,7 +205,7 @@ export default function AttendancePortal({
         <button
           onClick={handleSave}
           disabled={loading || students.length === 0}
-          className="bg-lamaSky hover:bg-[#38b1d8] text-white font-bold py-2.5 px-6 rounded-xl text-xs transition-all duration-200 shadow-sm disabled:opacity-50 flex items-center gap-1.5 transform hover:scale-[1.01] active:scale-[0.99]"
+          className="bg-lamaSky hover:bg-[#1e40af] text-white font-bold py-2.5 px-6 rounded-xl text-xs transition-all duration-200 shadow-sm disabled:opacity-50 flex items-center gap-1.5 transform hover:scale-[1.01] active:scale-[0.99]"
         >
           {loading ? "Saving Records..." : "💾 Save Attendance Register"}
         </button>

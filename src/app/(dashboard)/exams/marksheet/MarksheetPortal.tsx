@@ -219,7 +219,7 @@ export default function MarksheetPortal({
         <button
           onClick={handleSave}
           disabled={loading || students.length === 0}
-          className="bg-lamaSky hover:bg-[#38b1d8] text-white font-bold py-2.5 px-6 rounded-xl text-xs transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+          className="bg-lamaSky hover:bg-[#1e40af] text-white font-bold py-2.5 px-6 rounded-xl text-xs transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5"
         >
           {loading ? "Recording..." : "💾 Save Results Ledger"}
         </button>

@@ -114,7 +114,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
 
             <button
               type="submit"
-              className="bg-lamaSky hover:bg-[#38b1d8] text-white font-bold p-2.5 rounded-xl text-xs transition-all duration-200 shadow-sm flex items-center justify-center gap-1.5 w-full"
+              className="bg-lamaSky hover:bg-[#1e40af] text-white font-bold p-2.5 rounded-xl text-xs transition-all duration-200 shadow-sm flex items-center justify-center gap-1.5 w-full"
             >
               🔍 Load Register
             </button>

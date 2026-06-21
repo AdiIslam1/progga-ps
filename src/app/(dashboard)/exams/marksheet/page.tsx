@@ -142,7 +142,7 @@ export default async function MarksheetPage({
 
           <button
             type="submit"
-            className="w-full bg-lamaSky hover:bg-[#38b1d8] text-white font-bold py-2.5 px-4 rounded-xl text-xs shadow-sm transition-all duration-200 flex items-center justify-center gap-1.5"
+            className="w-full bg-lamaSky hover:bg-[#1e40af] text-white font-bold py-2.5 px-4 rounded-xl text-xs shadow-sm transition-all duration-200 flex items-center justify-center gap-1.5"
           >
             Load Marksheet
           </button>

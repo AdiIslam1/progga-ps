@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth-server";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import StudentForm from "@/components/forms/StudentForm";
+import AdmissionForm from "@/app/(dashboard)/list/students/admission-form/AdmissionForm";
 
 export default async function EditStudentPage({ params }: { params: { id: string } }) {
   const { role } = await auth();
@@ -11,7 +11,7 @@ export default async function EditStudentPage({ params }: { params: { id: string
   const [student, classes] = await Promise.all([
     prisma.student.findUnique({ where: { id: params.id } }),
     prisma.class.findMany({
-      include: { _count: { select: { students: true } } },
+      select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
   ]);
@@ -41,9 +41,15 @@ export default async function EditStudentPage({ params }: { params: { id: string
         <span className="text-xs font-bold text-gray-800">Edit</span>
       </div>
 
-      <div className="max-w-2xl mx-auto p-6">
+      <div className="max-w-5xl mx-auto p-6">
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-slate-800">Edit Student</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Update student information for {student.name} {student.surname}.
+          </p>
+        </div>
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-          <StudentForm type="update" data={student} relatedData={{ classes }} />
+          <AdmissionForm type="update" data={student} classes={classes} />
         </div>
       </div>
     </div>

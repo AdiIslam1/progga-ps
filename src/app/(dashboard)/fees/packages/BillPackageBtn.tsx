@@ -34,7 +34,7 @@ export default function BillPackageBtn({
 
   const targetLabel = className ? `Class ${className}` : "All Students";
   const accentColor = className ? "bg-lamaSky" : "bg-lamaPurple";
-  const accentHover = className ? "hover:bg-[#38b1d8]" : "hover:bg-[#a394f7]";
+  const accentHover = className ? "hover:bg-[#1e40af]" : "hover:bg-[#a394f7]";
   const billedSet = new Set(billedMonths);
   const currentMonth = new Date().getMonth() + 1;
 

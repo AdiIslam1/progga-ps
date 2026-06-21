@@ -7,7 +7,7 @@ const Navbar = async () => {
   const user = await currentUser();
 
   return (
-    <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200 shadow-sm gap-4 sticky top-0 z-30">
+    <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200 shadow-sm gap-4 sticky top-0 z-30 print:hidden">
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <HamburgerButton />
         <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 flex-1 max-w-sm">

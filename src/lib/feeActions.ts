@@ -311,6 +311,81 @@ export const setCustomTuitionFee = async (
   }
 };
 
+// Edit the amount of an unpaid fee collection record
+export const updateFeeAmount = async (id: number, amount: number) => {
+  try {
+    const fee = await prisma.feeCollection.findUnique({ where: { id }, select: { status: true } });
+    if (!fee || fee.status === "PAID") {
+      return { success: false, message: "Cannot edit a paid fee." };
+    }
+    await prisma.feeCollection.update({ where: { id }, data: { amount } });
+    revalidatePath("/fees/collect");
+    revalidatePath("/fees/admission-fees");
+    revalidatePath("/fees/ledger");
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false, message: "Update failed." };
+  }
+};
+
+// Bulk-create admission fees for all students in a class (or all classes) for a given year
+export const bulkAdmissionFee = async (data: {
+  classId: string;   // "all" or a numeric class id
+  year: number;
+  amount: number;
+}) => {
+  try {
+    const feeName = `Admission Fee ${data.year}`;
+
+    const students = await prisma.student.findMany({
+      where: data.classId === "all" ? {} : { classId: parseInt(data.classId) },
+      select: { id: true },
+    });
+
+    if (students.length === 0) {
+      return { success: false, message: "No students found." };
+    }
+
+    // Skip students who already have this year's admission fee
+    const existing = await prisma.feeCollection.findMany({
+      where: {
+        name: feeName,
+        studentId: { in: students.map((s) => s.id) },
+      },
+      select: { studentId: true },
+    });
+    const alreadyBilled = new Set(existing.map((e) => e.studentId));
+    const toBill = students.filter((s) => !alreadyBilled.has(s.id));
+
+    if (toBill.length === 0) {
+      return { success: true, message: `All students already have Admission Fee ${data.year}.`, skipped: students.length, created: 0 };
+    }
+
+    await prisma.feeCollection.createMany({
+      data: toBill.map((s) => ({
+        studentId: s.id,
+        name: feeName,
+        amount: data.amount,
+        status: FeeStatus.UNPAID,
+      })),
+    });
+
+    revalidatePath("/fees/collect");
+    revalidatePath("/fees/ledger");
+
+    return {
+      success: true,
+      created: toBill.length,
+      skipped: alreadyBilled.size,
+      message: `Created admission fee for ${toBill.length} student(s).${alreadyBilled.size > 0 ? ` Skipped ${alreadyBilled.size} already billed.` : ""}`,
+    };
+  } catch (err) {
+    console.error(err);
+    return { success: false, message: "An unexpected error occurred." };
+  }
+};
+
 // Create a new school expenditure
 export const createExpense = async (
   currentState: any,

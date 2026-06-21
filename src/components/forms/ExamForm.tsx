@@ -61,6 +61,50 @@ const ExamForm = ({
           register={register}
           error={errors?.title}
         />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Semester Number</label>
+            <select
+              className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+              {...register("semesterNumber")}
+              defaultValue={data?.semesterNumber ?? ""}
+            >
+              <option value="">-- Not a semester --</option>
+              <option value="1">1st Semester</option>
+              <option value="2">2nd Semester</option>
+              <option value="3">3rd Semester</option>
+              <option value="4">4th Semester</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Academic Year</label>
+            <input
+              type="number"
+              placeholder="e.g. 2025"
+              className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+              {...register("year")}
+              defaultValue={data?.year ?? ""}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Semester Start Date</label>
+            <input
+              type="date"
+              className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+              {...register("semStartDate")}
+              defaultValue={data?.semStartDate ? new Date(data.semStartDate).toISOString().split("T")[0] : ""}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Semester End Date</label>
+            <input
+              type="date"
+              className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+              {...register("semEndDate")}
+              defaultValue={data?.semEndDate ? new Date(data.semEndDate).toISOString().split("T")[0] : ""}
+            />
+          </div>
+        </div>
         {data && (
           <InputField
             label="Id"
@@ -76,7 +120,7 @@ const ExamForm = ({
       {state.error && (
         <span className="text-red-500">Something went wrong!</span>
       )}
-      <button className="bg-blue-400 text-white p-2 rounded-md">
+      <button className="bg-blue-700 text-white p-2 rounded-md">
         {type === "create" ? "Create" : "Update"}
       </button>
     </form>

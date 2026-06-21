@@ -42,7 +42,7 @@ const LoginPage = () => {
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="bg-blue-500 text-white rounded-md px-3 py-2 text-sm"
+            className="bg-blue-700 text-white rounded-md px-3 py-2 text-sm"
           >
             Sign out
           </button>
@@ -118,7 +118,7 @@ const LoginPage = () => {
         <button
           type="submit"
           disabled={loading}
-          className="bg-blue-500 text-white my-1 rounded-md text-sm p-[10px] disabled:opacity-60"
+          className="bg-blue-700 text-white my-1 rounded-md text-sm p-[10px] disabled:opacity-60"
         >
           {loading ? "Signing in..." : "Sign In"}
         </button>

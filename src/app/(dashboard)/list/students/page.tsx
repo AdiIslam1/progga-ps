@@ -123,7 +123,7 @@ const StudentListPage = async ({
   ]);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 flex-1 m-4 mt-0 overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 m-4 mt-0">
       {/* Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-5 border-b border-slate-100">
         <div>
@@ -136,9 +136,9 @@ const StudentListPage = async ({
             <StudentFilters classes={allClasses} />
           </Suspense>
           {role === "admin" && (
-            <Link href="/list/students/new">
-              <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
-                + Add Student
+            <Link href="/list/students/admission-form">
+              <button className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
+                + New Admission
               </button>
             </Link>
           )}

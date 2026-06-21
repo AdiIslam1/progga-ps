@@ -149,7 +149,7 @@ export default async function ExamSchedulePage({
             </div>
             <button
               type="submit"
-              className="bg-lamaSky text-white font-semibold py-2.5 px-5 rounded-xl text-sm hover:bg-[#38b1d8] transition-colors"
+              className="bg-lamaSky text-white font-semibold py-2.5 px-5 rounded-xl text-sm hover:bg-[#1e40af] transition-colors"
             >
               View
             </button>

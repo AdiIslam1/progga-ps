@@ -91,7 +91,7 @@ export default function EditPackageBtn({
         <button
           onClick={handleSave}
           disabled={loading}
-          className="flex-1 bg-lamaSky text-white font-bold py-1.5 rounded-lg text-xs hover:bg-[#38b1d8] disabled:opacity-50 transition-colors"
+          className="flex-1 bg-lamaSky text-white font-bold py-1.5 rounded-lg text-xs hover:bg-[#1e40af] disabled:opacity-50 transition-colors"
         >
           {loading ? "Saving…" : "Save"}
         </button>

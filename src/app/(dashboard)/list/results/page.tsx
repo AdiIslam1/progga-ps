@@ -148,7 +148,7 @@ export default async function ResultsPage({
 
           <button
             type="submit"
-            className="bg-lamaSky hover:bg-[#38b1d8] text-white font-bold py-2.5 px-6 rounded-xl text-xs shadow-sm transition-colors whitespace-nowrap"
+            className="bg-lamaSky hover:bg-[#1e40af] text-white font-bold py-2.5 px-6 rounded-xl text-xs shadow-sm transition-colors whitespace-nowrap"
           >
             View Results
           </button>

@@ -37,6 +37,7 @@ const menuItems: {
     items: [
       { icon: "Package", label: "Fee Packages", href: "/fees/packages", visible: ["admin"] },
       { icon: "Banknote", label: "Collect Fees", href: "/fees/collect", visible: ["admin"] },
+      { icon: "ClipboardList", label: "Admission Fees", href: "/fees/admission-fees", visible: ["admin"] },
       { icon: "BookOpen", label: "Ledger", href: "/fees/ledger", visible: ["admin", "student", "teacher"] },
       { icon: "PieChart", label: "Finance Reports", href: "/fees/reports", visible: ["admin"] },
       { icon: "Receipt", label: "Salary Billing", href: "/salaries/billing", visible: ["admin"] },

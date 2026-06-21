@@ -1,10 +1,11 @@
 "use client";
 
-import { collectFees } from "@/lib/feeActions";
+import { collectFees, updateFeeAmount } from "@/lib/feeActions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-toastify";
+import { Pencil, Check, X } from "lucide-react";
 
 interface FeeItem {
   id: number;
@@ -46,6 +47,37 @@ export default function CollectorPortal({
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [discount, setDiscount] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+
+  const startEdit = (fee: FeeItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(fee.id);
+    setEditAmount(String(fee.amount));
+  };
+
+  const cancelEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(null);
+    setEditAmount("");
+  };
+
+  const saveEdit = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const amt = parseFloat(editAmount);
+    if (isNaN(amt) || amt < 0) { toast.error("Enter a valid amount."); return; }
+    setEditSaving(true);
+    const res = await updateFeeAmount(id, amt);
+    setEditSaving(false);
+    if (res.success) {
+      toast.success("Fee amount updated.");
+      setEditingId(null);
+      router.refresh();
+    } else {
+      toast.error(res.message ?? "Failed to update.");
+    }
+  };
 
   const toggleSelect = (id: number) =>
     setSelectedIds((prev) =>
@@ -105,7 +137,7 @@ export default function CollectorPortal({
           {unpaidFees.length > 0 && (
             <button
               onClick={selectAll}
-              className="text-xs text-lamaSky hover:text-[#38b1d8] font-bold transition-colors"
+              className="text-xs text-lamaSky hover:text-[#1e40af] font-bold transition-colors"
             >
               {selectedIds.length === unpaidFees.length ? "Deselect All" : "Select All"}
             </button>
@@ -126,7 +158,7 @@ export default function CollectorPortal({
                 return (
                   <div
                     key={fee.id}
-                    onClick={() => toggleSelect(fee.id)}
+                    onClick={() => editingId !== fee.id && toggleSelect(fee.id)}
                     className={`flex items-center justify-between px-5 py-3.5 cursor-pointer select-none transition-colors ${
                       isSelected ? "bg-[#f3fcff]" : "hover:bg-gray-50"
                     }`}
@@ -150,9 +182,36 @@ export default function CollectorPortal({
                         )}
                       </div>
                     </div>
-                    <span className="text-sm font-extrabold text-gray-800">
-                      ৳{fee.amount.toLocaleString()}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {editingId === fee.id ? (
+                        <>
+                          <span className="text-xs text-gray-400 font-semibold">৳</span>
+                          <input
+                            type="number"
+                            value={editAmount}
+                            onChange={(e) => setEditAmount(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-24 ring-1 ring-blue-300 rounded-lg px-2 py-1 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                            autoFocus
+                          />
+                          <button onClick={(e) => saveEdit(fee.id, e)} disabled={editSaving} className="w-6 h-6 flex items-center justify-center rounded-full bg-green-100 hover:bg-green-200 text-green-700 transition-colors">
+                            <Check size={12} />
+                          </button>
+                          <button onClick={cancelEdit} className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors">
+                            <X size={12} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-sm font-extrabold text-gray-800">৳{fee.amount.toLocaleString()}</span>
+                          {fee.name.startsWith("Admission Fee") && (
+                            <button onClick={(e) => startEdit(fee, e)} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">
+                              <Pencil size={11} />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -214,7 +273,7 @@ export default function CollectorPortal({
               <button
                 onClick={handleConfirmPayment}
                 disabled={loading || selectedIds.length === 0}
-                className="w-full bg-lamaSky hover:bg-[#38b1d8] text-white font-bold py-3 px-4 rounded-xl transition-all text-sm shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-lamaSky hover:bg-[#1e40af] text-white font-bold py-3 px-4 rounded-xl transition-all text-sm shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>

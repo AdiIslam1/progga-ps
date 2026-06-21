@@ -180,7 +180,7 @@ export default function RoutineGrid({
                       <button
                         type="button"
                         onClick={() => openEdit(lesson)}
-                        className="w-5 h-5 rounded bg-lamaSky hover:bg-[#38b1d8] text-white text-[10px] flex items-center justify-center"
+                        className="w-5 h-5 rounded bg-lamaSky hover:bg-[#1e40af] text-white text-[10px] flex items-center justify-center"
                         title="Edit"
                       >
                         ✎
@@ -327,7 +327,7 @@ export default function RoutineGrid({
 
               <button
                 type="submit"
-                className="mt-2 bg-lamaSky text-white font-semibold py-2.5 rounded-xl hover:bg-[#38b1d8] transition-colors text-sm"
+                className="mt-2 bg-lamaSky text-white font-semibold py-2.5 rounded-xl hover:bg-[#1e40af] transition-colors text-sm"
               >
                 {editTarget ? "Update Period" : "Add Period"}
               </button>

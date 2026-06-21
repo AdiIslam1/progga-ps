@@ -34,7 +34,7 @@ export default function DashboardLayout({
           </div>
         </SidebarDrawer>
 
-        <div className="flex-1 min-w-0 bg-slate-50 overflow-y-auto flex flex-col pb-8">
+        <div className="flex-1 min-w-0 bg-slate-50 overflow-y-auto flex flex-col pb-8 print:overflow-visible print:pb-0">
           <Navbar />
           {children}
         </div>
