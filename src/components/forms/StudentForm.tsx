@@ -9,6 +9,7 @@ import { studentSchema, StudentSchema } from "@/lib/formValidationSchemas";
 import { createStudent, updateStudent } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { CldUploadWidget } from "next-cloudinary";
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
@@ -26,6 +27,7 @@ const StudentForm = ({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<StudentSchema>({
     resolver: zodResolver(studentSchema),
@@ -33,6 +35,7 @@ const StudentForm = ({
 
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState(false);
+  const [imgUrl, setImgUrl] = useState<string | undefined>(data?.img);
 
   const router = useRouter();
   const { classes = [] } = relatedData || {};
@@ -95,12 +98,36 @@ const StudentForm = ({
           Personal Information
         </p>
 
-        {/* Avatar placeholder — photo upload coming soon */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border border-gray-200 flex-shrink-0">
-            <Image src="/noAvatar.png" alt="" width={64} height={64} className="w-full h-full object-cover" />
+        {/* Photo Upload */}
+        <div className="flex flex-col gap-2 mb-4">
+          <div className="flex items-center gap-3">
+            <CldUploadWidget
+              uploadPreset="progga_preset"
+              options={{ maxFiles: 1, clientAllowedFormats: ["image"] }}
+              onSuccess={(result: any) => {
+                setImgUrl(result.info.secure_url);
+                setValue("img", result.info.secure_url);
+              }}
+            >
+              {({ open }) => {
+                return (
+                  <div className="flex items-center gap-3 cursor-pointer" onClick={() => open()}>
+                    <div className="w-20 h-20 rounded-md overflow-hidden bg-white border border-gray-200 flex-shrink-0 relative shadow-sm">
+                      <Image
+                        src={imgUrl || "/noAvatar.png"}
+                        alt="Profile Photo"
+                        fill
+                        className="object-contain p-1"
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-blue-600 hover:underline">
+                      Upload Photo
+                    </span>
+                  </div>
+                );
+              }}
+            </CldUploadWidget>
           </div>
-          <span className="text-xs text-gray-400">Photo upload coming soon</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

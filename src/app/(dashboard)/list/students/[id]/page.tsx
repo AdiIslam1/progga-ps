@@ -1,4 +1,3 @@
-import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import ResetPasswordButton from "@/components/ResetPasswordButton";
 import StudentAttendanceCard from "@/components/StudentAttendanceCard";
@@ -128,7 +127,7 @@ const SingleStudentPage = async ({
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div className="bg-white rounded-xl p-4 flex items-center gap-3 shadow-sm border border-gray-100">
             <Image src="/singleAttendance.png" alt="" width={28} height={28} className="opacity-80" />
             <Suspense fallback={<span className="text-sm text-gray-400">…</span>}>
@@ -140,13 +139,6 @@ const SingleStudentPage = async ({
             <div>
               <p className="text-xl font-bold">{student.class.name}</p>
               <p className="text-xs text-gray-400">Class</p>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-4 flex items-center gap-3 shadow-sm border border-gray-100">
-            <Image src="/singleLesson.png" alt="" width={28} height={28} className="opacity-80" />
-            <div>
-              <p className="text-xl font-bold">{student.class._count.lessons}</p>
-              <p className="text-xs text-gray-400">Lessons</p>
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 flex items-center gap-3 shadow-sm border border-gray-100">
@@ -227,18 +219,6 @@ const SingleStudentPage = async ({
 
       {/* RIGHT */}
       <div className="w-full xl:w-1/3 flex flex-col gap-4">
-        {/* Quick Links */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <h2 className="text-base font-semibold mb-3">Quick Links</h2>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <Link className="px-3 py-2 rounded-lg bg-lamaSkyLight text-lamaSky font-medium hover:bg-lamaSky hover:text-white transition-colors" href={`/list/lessons?classId=${student.class.id}`}>Lessons</Link>
-            <Link className="px-3 py-2 rounded-lg bg-lamaPurpleLight text-purple-600 font-medium hover:bg-lamaPurple hover:text-white transition-colors" href={`/list/teachers?classId=${student.class.id}`}>Teachers</Link>
-            <Link className="px-3 py-2 rounded-lg bg-pink-50 text-pink-600 font-medium hover:bg-pink-100 transition-colors" href={`/list/exams?classId=${student.class.id}`}>Exams</Link>
-            <Link className="px-3 py-2 rounded-lg bg-lamaSkyLight text-lamaSky font-medium hover:bg-lamaSky hover:text-white transition-colors" href={`/routine?classId=${student.class.id}`}>Routine</Link>
-            <Link className="px-3 py-2 rounded-lg bg-lamaYellowLight text-yellow-700 font-medium hover:bg-lamaYellow transition-colors" href={`/list/results?studentId=${student.id}`}>Results</Link>
-            <Link className="px-3 py-2 rounded-lg bg-green-50 text-green-700 font-medium hover:bg-green-100 transition-colors" href={`/fees?studentId=${student.id}`}>Fees</Link>
-          </div>
-        </div>
 
         {/* Student ID Card */}
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
@@ -271,6 +251,7 @@ const SingleStudentPage = async ({
               { label: "Shift", value: student.shift },
               { label: "Roll No.", value: student.rollNo },
               { label: "Section", value: student.section },
+              ...(role === "admin" ? [{ label: "Custom Tuition Fee", value: student.customTuitionFee ? `৳${student.customTuitionFee}` : null }] : []),
             ].filter(r => r.value != null && r.value !== "").map(({ label, value }) => (
               <div key={label} className="flex justify-between gap-2">
                 <span className="text-slate-400 text-xs">{label}</span>
@@ -280,7 +261,6 @@ const SingleStudentPage = async ({
           </div>
         </div>
 
-        <Announcements />
       </div>
     </div>
   );

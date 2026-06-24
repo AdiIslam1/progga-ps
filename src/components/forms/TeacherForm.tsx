@@ -3,12 +3,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import { Dispatch, SetStateAction, useEffect } from "react";
+import Image from "next/image";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { teacherSchema, TeacherSchema } from "@/lib/formValidationSchemas";
 import { useFormState } from "react-dom";
 import { createTeacher, updateTeacher } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { CldUploadWidget } from "next-cloudinary";
 
 type Subject = { id: number; name: string; class: { name: string } };
 
@@ -26,10 +28,13 @@ const TeacherForm = ({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<TeacherSchema>({
     resolver: zodResolver(teacherSchema),
   });
+
+  const [imgUrl, setImgUrl] = useState<string | undefined>(data?.img);
 
   const [state, formAction] = useFormState(
     type === "create" ? createTeacher : updateTeacher,
@@ -103,6 +108,40 @@ const TeacherForm = ({
         <h3 className="text-sm font-semibold text-gray-600 mb-3 pb-1 border-b border-gray-100">
           Personal Information
         </h3>
+
+        {/* Photo Upload */}
+        <div className="flex flex-col gap-2 mb-4">
+          <div className="flex items-center gap-3">
+            <CldUploadWidget
+              uploadPreset="progga_preset"
+              options={{ maxFiles: 1, clientAllowedFormats: ["image"] }}
+              onSuccess={(result: any) => {
+                setImgUrl(result.info.secure_url);
+                setValue("img", result.info.secure_url);
+              }}
+            >
+              {({ open }) => {
+                return (
+                  <div className="flex items-center gap-3 cursor-pointer" onClick={() => open()}>
+                    <div className="w-20 h-20 rounded-md overflow-hidden bg-white border border-gray-200 flex-shrink-0 relative shadow-sm">
+                      <Image
+                        src={imgUrl || "/noAvatar.png"}
+                        alt="Profile Photo"
+                        fill
+                        className="object-contain p-1"
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-blue-600 hover:underline">
+                      Upload Photo
+                    </span>
+                  </div>
+                );
+              }}
+            </CldUploadWidget>
+          </div>
+          <input type="hidden" {...register("img")} value={imgUrl || ""} />
+        </div>
+
         <div className="grid grid-cols-3 gap-4">
           <InputField label="First Name" name="name" defaultValue={data?.name} register={register} error={errors.name} />
           <InputField label="Last Name" name="surname" defaultValue={data?.surname} register={register} error={errors.surname} />
@@ -122,7 +161,6 @@ const TeacherForm = ({
             defaultValue={data?.bloodType}
             register={register}
             error={errors.bloodType}
-            placeholder="e.g. A+"
           />
           <div className="flex flex-col gap-1">
             <label className="text-xs text-gray-500">Sex</label>

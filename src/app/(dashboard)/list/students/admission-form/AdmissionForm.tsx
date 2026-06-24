@@ -5,9 +5,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { studentSchema, StudentSchema } from "@/lib/formValidationSchemas";
 import { createStudent, updateStudent } from "@/lib/actions";
 import { useFormState } from "react-dom";
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import Image from "next/image";
+import { useState, useEffect } from "react";
+import { CldUploadWidget } from "next-cloudinary";
 
 type Class = { id: number; name: string };
 
@@ -78,18 +80,19 @@ export default function AdmissionForm({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<StudentSchema>({
     resolver: zodResolver(studentSchema),
     defaultValues: {
       admissionFee: 0,
       admissionYear: data?.admissionYear ?? currentYear,
-      classId: data?.classId ? String(data.classId) : undefined,
+      classId: (data?.classId ? String(data.classId) : undefined) as any,
       name: data?.name ?? "",
       surname: data?.surname ?? "",
       nameBn: data?.nameBn ?? "",
       sex: data?.sex ?? "",
-      birthday: data?.birthday ? new Date(data.birthday).toISOString().split("T")[0] : "",
+      birthday: (data?.birthday ? new Date(data.birthday).toISOString().split("T")[0] : "") as any,
       birthRegNo: data?.birthRegNo ?? "",
       bloodType: data?.bloodType ?? "",
       phone: data?.phone ?? "",
@@ -129,6 +132,8 @@ export default function AdmissionForm({
       prevSession: data?.prevSession ?? "",
     },
   });
+
+  const [imgUrl, setImgUrl] = useState<string | undefined>(data?.img);
 
   useEffect(() => {
     if (state.success) {
@@ -182,6 +187,40 @@ export default function AdmissionForm({
 
       {/* SECTION 1 */}
       <SectionHeader num="১" title="শিক্ষার্থীর তথ্য (Student Information)" />
+      
+      {/* Photo Upload */}
+      <div className="flex flex-col gap-2 mb-4 mt-2">
+        <div className="flex items-center gap-3">
+          <CldUploadWidget
+            uploadPreset="progga_preset"
+            options={{ maxFiles: 1, clientAllowedFormats: ["image"] }}
+            onSuccess={(result: any) => {
+              setImgUrl(result.info.secure_url);
+              setValue("img", result.info.secure_url);
+            }}
+          >
+            {({ open }) => {
+              return (
+                <div className="flex items-center gap-3 cursor-pointer" onClick={() => open()}>
+                  <div className="w-20 h-20 rounded-md overflow-hidden bg-white border border-gray-200 flex-shrink-0 relative shadow-sm">
+                    <Image
+                      src={imgUrl || "/noAvatar.png"}
+                      alt="Profile Photo"
+                      fill
+                      className="object-contain p-1"
+                    />
+                  </div>
+                  <span className="text-sm font-medium text-blue-600 hover:underline">
+                    Upload Photo
+                  </span>
+                </div>
+              );
+            }}
+          </CldUploadWidget>
+        </div>
+      </div>
+      <input type="hidden" {...register("img")} value={imgUrl || ""} />
+
       <div className="grid grid-cols-2 gap-4">
         <Field label="শিক্ষার্থীর নাম (বাংলায়)" name="nameBn" register={register} placeholder="বাংলায় পূর্ণ নাম" />
         <Field label="Name in English — First" name="name" register={register} required placeholder="First name" error={errors.name} />
