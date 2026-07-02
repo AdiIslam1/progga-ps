@@ -101,32 +101,48 @@ const StudentForm = ({
         {/* Photo Upload */}
         <div className="flex flex-col gap-2 mb-4">
           <div className="flex items-center gap-3">
-            <CldUploadWidget
-              uploadPreset="progga_preset"
-              options={{ maxFiles: 1, clientAllowedFormats: ["image"] }}
-              onSuccess={(result: any) => {
-                setImgUrl(result.info.secure_url);
-                setValue("img", result.info.secure_url);
-              }}
-            >
-              {({ open }) => {
-                return (
-                  <div className="flex items-center gap-3 cursor-pointer" onClick={() => open()}>
-                    <div className="w-20 h-20 rounded-md overflow-hidden bg-white border border-gray-200 flex-shrink-0 relative shadow-sm">
-                      <Image
-                        src={imgUrl || "/noAvatar.png"}
-                        alt="Profile Photo"
-                        fill
-                        className="object-contain p-1"
-                      />
+            {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ? (
+              <CldUploadWidget
+                uploadPreset="progga_preset"
+                options={{ maxFiles: 1, clientAllowedFormats: ["image"] }}
+                onSuccess={(result: any) => {
+                  setImgUrl(result.info.secure_url);
+                  setValue("img", result.info.secure_url);
+                }}
+              >
+                {({ open }) => {
+                  return (
+                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => open()}>
+                      <div className="w-20 h-20 rounded-md overflow-hidden bg-white border border-gray-200 flex-shrink-0 relative shadow-sm">
+                        <Image
+                          src={imgUrl || "/noAvatar.png"}
+                          alt="Profile Photo"
+                          fill
+                          className="object-contain p-1"
+                        />
+                      </div>
+                      <span className="text-sm font-medium text-blue-600 hover:underline">
+                        Upload Photo
+                      </span>
                     </div>
-                    <span className="text-sm font-medium text-blue-600 hover:underline">
-                      Upload Photo
-                    </span>
-                  </div>
-                );
-              }}
-            </CldUploadWidget>
+                  );
+                }}
+              </CldUploadWidget>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="w-20 h-20 rounded-md overflow-hidden bg-white border border-gray-200 flex-shrink-0 relative shadow-sm">
+                  <Image
+                    src={imgUrl || "/noAvatar.png"}
+                    alt="Profile Photo"
+                    fill
+                    className="object-contain p-1"
+                  />
+                </div>
+                <span className="text-sm text-gray-400">
+                  Photo upload unavailable
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -267,6 +283,22 @@ const StudentForm = ({
             />
             {errors.customTuitionFee?.message && (
               <p className="text-xs text-red-400">{String(errors.customTuitionFee.message)}</p>
+            )}
+          </div>
+
+          {/* Admission Fee */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500">Admission Fee</label>
+            <input
+              type="number"
+              min="0"
+              placeholder="e.g. 1000"
+              className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+              {...register("admissionFee")}
+              defaultValue={data?.admissionFee ?? ""}
+            />
+            {errors.admissionFee?.message && (
+              <p className="text-xs text-red-400">{String(errors.admissionFee.message)}</p>
             )}
           </div>
 
