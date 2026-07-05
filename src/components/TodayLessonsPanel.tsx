@@ -35,22 +35,22 @@ const TodayLessonsPanel = async ({ teacherId }: { teacherId: string }) => {
       where: { teacherId, day: todayDay },
       include: {
         subject: { select: { id: true, name: true } },
-        class: { select: { name: true } },
+        class: { select: { id: true, name: true } },
       },
       orderBy: { startTime: "asc" },
     }),
     prisma.attendance.findMany({
       where: {
         date: { gte: today, lt: tomorrow },
-        subject: { lessons: { some: { teacherId } } },
+        class: { lessons: { some: { teacherId } } },
       },
-      select: { subjectId: true },
-      distinct: ["subjectId"],
+      select: { classId: true },
+      distinct: ["classId"],
     }),
   ]);
 
-  const markedSubjects = new Set(attendanceTaken.map((a) => a.subjectId));
-  const pendingCount = lessons.filter((l) => !markedSubjects.has(l.subject.id)).length;
+  const markedClasses = new Set(attendanceTaken.map((a) => a.classId));
+  const pendingCount = lessons.filter((l) => !markedClasses.has(l.class.id)).length;
 
   return (
     <div className="bg-white p-4 rounded-xl border border-gray-100">
@@ -70,7 +70,7 @@ const TodayLessonsPanel = async ({ teacherId }: { teacherId: string }) => {
       ) : (
         <div className="flex flex-col gap-3">
           {lessons.map((lesson) => {
-            const marked = markedSubjects.has(lesson.subject.id);
+            const marked = markedClasses.has(lesson.class.id);
             return (
               <div key={lesson.id} className="flex items-center gap-3">
                 <div
