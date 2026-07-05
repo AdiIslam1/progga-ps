@@ -4,11 +4,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { studentSchema, StudentSchema } from "@/lib/formValidationSchemas";
 import { createStudent, updateStudent } from "@/lib/actions";
-import { useFormState } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { CldUploadWidget } from "next-cloudinary";
 
 type Class = { id: number; name: string };
@@ -72,10 +71,7 @@ export default function AdmissionForm({
   data?: any;
 }) {
   const router = useRouter();
-  const [state, formAction] = useFormState(
-    type === "create" ? createStudent : updateStudent,
-    { success: false, error: false }
-  );
+  const [serverError, setServerError] = useState(false);
 
   const {
     register,
@@ -135,20 +131,35 @@ export default function AdmissionForm({
 
   const [imgUrl, setImgUrl] = useState<string | undefined>(data?.img);
 
-  useEffect(() => {
-    if (state.success) {
-      if (type === "create" && (state as { id?: string }).id) {
-        toast("Student admitted successfully!");
-        router.push(`/list/students/${(state as { id?: string }).id}`);
-      } else if (type === "update") {
-        toast("Student updated successfully!");
-        router.push(`/list/students/${data?.id}`);
+  const onSubmit = handleSubmit(async (formData) => {
+    setServerError(false);
+    try {
+      if (type === "create") {
+        const result = await createStudent(
+          { success: false, error: false },
+          { ...formData }
+        );
+        if (result.success && (result as { id?: string }).id) {
+          toast("Student admitted successfully!");
+          router.push(`/list/students/${(result as { id?: string }).id}`);
+        } else {
+          setServerError(true);
+        }
+      } else {
+        const result = await updateStudent(
+          { success: false, error: false },
+          { ...formData }
+        );
+        if (result.success) {
+          toast("Student updated successfully!");
+          router.push(`/list/students/${data?.id}`);
+        } else {
+          setServerError(true);
+        }
       }
+    } catch {
+      setServerError(true);
     }
-  }, [state, router, type, data?.id]);
-
-  const onSubmit = handleSubmit((formData) => {
-    formAction(formData);
   });
 
   return (
@@ -191,32 +202,48 @@ export default function AdmissionForm({
       {/* Photo Upload */}
       <div className="flex flex-col gap-2 mb-4 mt-2">
         <div className="flex items-center gap-3">
-          <CldUploadWidget
-            uploadPreset="progga_preset"
-            options={{ maxFiles: 1, clientAllowedFormats: ["image"] }}
-            onSuccess={(result: any) => {
-              setImgUrl(result.info.secure_url);
-              setValue("img", result.info.secure_url);
-            }}
-          >
-            {({ open }) => {
-              return (
-                <div className="flex items-center gap-3 cursor-pointer" onClick={() => open()}>
-                  <div className="w-20 h-20 rounded-md overflow-hidden bg-white border border-gray-200 flex-shrink-0 relative shadow-sm">
-                    <Image
-                      src={imgUrl || "/noAvatar.png"}
-                      alt="Profile Photo"
-                      fill
-                      className="object-contain p-1"
-                    />
+          {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ? (
+            <CldUploadWidget
+              uploadPreset="progga_preset"
+              options={{ maxFiles: 1, clientAllowedFormats: ["image"] }}
+              onSuccess={(result: any) => {
+                setImgUrl(result.info.secure_url);
+                setValue("img", result.info.secure_url);
+              }}
+            >
+              {({ open }) => {
+                return (
+                  <div className="flex items-center gap-3 cursor-pointer" onClick={() => open()}>
+                    <div className="w-20 h-20 rounded-md overflow-hidden bg-white border border-gray-200 flex-shrink-0 relative shadow-sm">
+                      <Image
+                        src={imgUrl || "/noAvatar.png"}
+                        alt="Profile Photo"
+                        fill
+                        className="object-contain p-1"
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-blue-600 hover:underline">
+                      Upload Photo
+                    </span>
                   </div>
-                  <span className="text-sm font-medium text-blue-600 hover:underline">
-                    Upload Photo
-                  </span>
-                </div>
-              );
-            }}
-          </CldUploadWidget>
+                );
+              }}
+            </CldUploadWidget>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="w-20 h-20 rounded-md overflow-hidden bg-white border border-gray-200 flex-shrink-0 relative shadow-sm">
+                <Image
+                  src={imgUrl || "/noAvatar.png"}
+                  alt="Profile Photo"
+                  fill
+                  className="object-contain p-1"
+                />
+              </div>
+              <span className="text-sm text-gray-400">
+                Photo upload unavailable
+              </span>
+            </div>
+          )}
         </div>
       </div>
       <input type="hidden" {...register("img")} value={imgUrl || ""} />
@@ -326,7 +353,7 @@ export default function AdmissionForm({
       </div>
 
       {/* Error / Submit */}
-      {state.error && (
+      {serverError && (
         <p className="text-sm text-red-500 bg-red-50 rounded-lg px-4 py-2 mt-4">
           Something went wrong. Please check all required fields and try again.
         </p>
