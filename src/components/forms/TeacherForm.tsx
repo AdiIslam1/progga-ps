@@ -4,9 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 import Image from "next/image";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { teacherSchema, TeacherSchema } from "@/lib/formValidationSchemas";
-import { useFormState } from "react-dom";
 import { createTeacher, updateTeacher } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
@@ -35,27 +34,50 @@ const TeacherForm = ({
   });
 
   const [imgUrl, setImgUrl] = useState<string | undefined>(data?.img);
-
-  const [state, formAction] = useFormState(
-    type === "create" ? createTeacher : updateTeacher,
-    { success: false, error: false }
-  );
+  const [serverError, setServerError] = useState(false);
 
   const router = useRouter();
 
-  useEffect(() => {
-    if (state.success) {
-      toast(`Teacher has been ${type === "create" ? "created" : "updated"}!`);
-      if (setOpen) {
-        setOpen(false);
-        router.refresh();
+  const onSubmit = handleSubmit(async (formData) => {
+    setServerError(false);
+    try {
+      if (type === "create") {
+        const result = await createTeacher(
+          { success: false, error: false },
+          { ...formData }
+        );
+        if (result.success) {
+          toast("Teacher has been created!");
+          if (setOpen) {
+            setOpen(false);
+            router.refresh();
+          } else {
+            router.push("/list/teachers");
+          }
+        } else {
+          setServerError(true);
+        }
       } else {
-        router.push("/list/teachers");
+        const result = await updateTeacher(
+          { success: false, error: false },
+          { ...formData }
+        );
+        if (result.success) {
+          toast("Teacher has been updated!");
+          if (setOpen) {
+            setOpen(false);
+            router.refresh();
+          } else {
+            router.push("/list/teachers");
+          }
+        } else {
+          setServerError(true);
+        }
       }
+    } catch {
+      setServerError(true);
     }
-  }, [state, router, type, setOpen]);
-
-  const onSubmit = handleSubmit((d) => formAction({ ...d }));
+  });
 
   const subjects: Subject[] = relatedData?.subjects ?? [];
 
@@ -238,7 +260,7 @@ const TeacherForm = ({
 
       {data && <input type="hidden" {...register("id")} defaultValue={data.id} />}
 
-      {state.error && (
+      {serverError && (
         <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-xl px-4 py-2">
           Something went wrong. Please check all fields and try again.
         </p>
