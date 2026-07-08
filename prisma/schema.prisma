@@ -235,6 +235,41 @@ model Expense {
   category String
 }
 
+model InventoryItem {
+  id              Int                 @id @default(autoincrement())
+  name            String
+  category        String?
+  description     String?
+  buyingPrice     Float
+  sellingPrice    Float
+  quantityInStock Int                 @default(0)
+  isActive        Boolean             @default(true)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  movements       InventoryMovement[]
+
+  @@index([name])
+  @@index([category])
+  @@index([isActive])
+}
+
+model InventoryMovement {
+  id               Int                   @id @default(autoincrement())
+  itemId           Int
+  item             InventoryItem         @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  type             InventoryMovementType
+  quantity         Int
+  unitBuyingPrice  Float?
+  unitSellingPrice Float?
+  totalAmount      Float
+  note             String?
+  createdAt        DateTime              @default(now())
+
+  @@index([itemId])
+  @@index([type])
+  @@index([createdAt])
+}
+
 model BonusPackage {
   id          Int                @id @default(autoincrement())
   name        String
@@ -353,6 +388,12 @@ enum SalaryStatus {
 enum SalaryType {
   SALARY
   BONUS
+}
+
+enum InventoryMovementType {
+  PURCHASE
+  SALE
+  ADJUSTMENT
 }
 
 enum NoticeType {

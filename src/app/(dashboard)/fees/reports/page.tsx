@@ -29,6 +29,16 @@ export default async function FinanceReportsPage() {
     },
   });
 
+  const inventorySales = await prisma.inventoryMovement.findMany({
+    where: {
+      type: "SALE",
+      createdAt: {
+        gte: startOfYear,
+        lte: endOfYear,
+      },
+    },
+  });
+
   // Fetch all unpaid collections (outstanding dues)
   const unpaidCollections = await prisma.feeCollection.findMany({
     where: {
@@ -50,7 +60,9 @@ export default async function FinanceReportsPage() {
   });
 
   // Calculations
-  const totalIncome = paidCollections.reduce((sum, item) => sum + item.paidAmount, 0);
+  const feeIncome = paidCollections.reduce((sum, item) => sum + item.paidAmount, 0);
+  const inventoryIncome = inventorySales.reduce((sum, item) => sum + item.totalAmount, 0);
+  const totalIncome = feeIncome + inventoryIncome;
   const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);
   const currentBalance = totalIncome - totalExpenses;
   const totalDues = unpaidCollections.reduce((sum, item) => sum + item.amount, 0);
@@ -71,6 +83,13 @@ export default async function FinanceReportsPage() {
       if (monthIdx >= 0 && monthIdx < 12) {
         chartData[monthIdx].income += c.paidAmount;
       }
+    }
+  });
+
+  inventorySales.forEach((sale) => {
+    const monthIdx = new Date(sale.createdAt).getMonth();
+    if (monthIdx >= 0 && monthIdx < 12) {
+      chartData[monthIdx].income += sale.totalAmount;
     }
   });
 
@@ -99,7 +118,7 @@ export default async function FinanceReportsPage() {
           <div>
             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Income</span>
             <h3 className="text-lg font-black text-gray-800 mt-0.5">৳{totalIncome.toLocaleString()}</h3>
-            <p className="text-[9px] text-gray-400 font-medium">Fee collections cleared</p>
+            <p className="text-[9px] text-gray-400 font-medium">Fees + inventory sales</p>
           </div>
         </div>
 
