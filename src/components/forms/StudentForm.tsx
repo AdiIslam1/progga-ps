@@ -34,7 +34,7 @@ const StudentForm = ({
   });
 
   const [submitting, setSubmitting] = useState(false);
-  const [serverError, setServerError] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
   const [imgUrl, setImgUrl] = useState<string | undefined>(data?.img);
 
   const router = useRouter();
@@ -42,7 +42,7 @@ const StudentForm = ({
 
   const onSubmit = handleSubmit(async (formData) => {
     setSubmitting(true);
-    setServerError(false);
+    setServerError(null);
     try {
       if (type === "create") {
         const result = await createStudent(
@@ -54,7 +54,7 @@ const StudentForm = ({
           if (setOpen) setOpen(false);
           router.push(`/list/students/${result.id}`);
         } else {
-          setServerError(true);
+          setServerError(result.message ?? "Something went wrong. Please check all fields and try again.");
         }
       } else {
         const result = await updateStudent(
@@ -70,11 +70,11 @@ const StudentForm = ({
             router.push("/list/students");
           }
         } else {
-          setServerError(true);
+          setServerError(result.message ?? "Something went wrong. Please check all fields and try again.");
         }
       }
     } catch {
-      setServerError(true);
+      setServerError("Something went wrong. Please check all fields and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -384,7 +384,7 @@ const StudentForm = ({
 
       {serverError && (
         <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-md p-3">
-          Something went wrong. Please check all fields and try again.
+          {serverError}
         </p>
       )}
 

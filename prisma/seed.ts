@@ -340,14 +340,12 @@ async function main() {
   // ATTENDANCE
   for (let i = 1; i <= 10; i++) {
     const studentClassId = (i % 6) + 1;
-    const subjectOffset = (i % 10) + 1;
-    const attendanceSubjectId = (studentClassId - 1) * 10 + subjectOffset;
     await prisma.attendance.create({
       data: {
         date: new Date(2026, 4, 22),
         present: i % 5 !== 0, // Mock 80% attendance rate
         studentId: `student${i}`,
-        subjectId: attendanceSubjectId,
+        classId: studentClassId,
       },
     });
   }

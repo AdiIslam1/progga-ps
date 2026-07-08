@@ -324,7 +324,10 @@ export default async function ReportCardsPage({
               {/* Student photo */}
               <div className="flex-shrink-0 w-16 h-20 border border-gray-400 overflow-hidden bg-gray-100">
                 {student.img
-                  ? <img src={student.img} alt="" className="w-full h-full object-cover" />
+                  ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={student.img} alt="" className="w-full h-full object-cover" />
+                  )
                   : <div className="w-full h-full flex items-center justify-center text-[8px] text-gray-400">Photo</div>}
               </div>
 
@@ -339,6 +342,7 @@ export default async function ReportCardsPage({
 
               {/* School logo */}
               <div className="flex-shrink-0 w-14 h-14 mx-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/school-logo.jpg" alt="Logo" className="w-full h-full object-contain" />
               </div>
 

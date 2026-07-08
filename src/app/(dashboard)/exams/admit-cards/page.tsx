@@ -147,11 +147,13 @@ export default async function AdmitCardsPage({
               <div className="relative flex flex-col gap-0" style={{ background: "#fdf8ee", border: "1px solid #2d7a2d", padding: "10px" }}>
                 {/* Watermark */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.07]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/school-logo.jpg" alt="" className="w-20 h-20 object-contain" />
                 </div>
 
                 {/* Header */}
                 <div className="flex flex-col items-center text-center gap-1 pb-2 relative z-10">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/school-logo.jpg" alt="" className="w-8 h-8 rounded-full object-cover" />
                   <p className="text-[9px] font-black uppercase tracking-wide text-green-900">Progga Preparatory &amp; High School</p>
                   <div className="flex items-center gap-2">

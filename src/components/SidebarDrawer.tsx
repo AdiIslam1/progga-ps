@@ -9,14 +9,14 @@ export default function SidebarDrawer({ children }: { children: React.ReactNode 
   const pathname = usePathname();
 
   // Close on navigation
-  useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(() => { setOpen(false); }, [pathname, setOpen]);
 
   // Close when viewport grows past md
   useEffect(() => {
     const fn = () => { if (window.innerWidth >= 768) setOpen(false); };
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
-  }, []);
+  }, [setOpen]);
 
   return (
     <>

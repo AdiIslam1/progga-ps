@@ -25,7 +25,6 @@ function Field({
 }: {
   label: string;
   name: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   register: any;
   error?: { message?: string };
   type?: string;
@@ -67,11 +66,10 @@ export default function AdmissionForm({
 }: {
   classes: Class[];
   type?: "create" | "update";
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any;
 }) {
   const router = useRouter();
-  const [serverError, setServerError] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const {
     register,
@@ -132,7 +130,7 @@ export default function AdmissionForm({
   const [imgUrl, setImgUrl] = useState<string | undefined>(data?.img);
 
   const onSubmit = handleSubmit(async (formData) => {
-    setServerError(false);
+    setServerError(null);
     try {
       if (type === "create") {
         const result = await createStudent(
@@ -143,7 +141,7 @@ export default function AdmissionForm({
           toast("Student admitted successfully!");
           router.push(`/list/students/${(result as { id?: string }).id}`);
         } else {
-          setServerError(true);
+          setServerError(result.message ?? "Something went wrong. Please check all required fields and try again.");
         }
       } else {
         const result = await updateStudent(
@@ -154,11 +152,11 @@ export default function AdmissionForm({
           toast("Student updated successfully!");
           router.push(`/list/students/${data?.id}`);
         } else {
-          setServerError(true);
+          setServerError(result.message ?? "Something went wrong. Please check all required fields and try again.");
         }
       }
     } catch {
-      setServerError(true);
+      setServerError("Something went wrong. Please check all required fields and try again.");
     }
   });
 
@@ -355,7 +353,7 @@ export default function AdmissionForm({
       {/* Error / Submit */}
       {serverError && (
         <p className="text-sm text-red-500 bg-red-50 rounded-lg px-4 py-2 mt-4">
-          Something went wrong. Please check all required fields and try again.
+          {serverError}
         </p>
       )}
 

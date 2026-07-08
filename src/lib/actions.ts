@@ -10,12 +10,54 @@ import {
   SubjectSchema,
   TeacherSchema,
 } from "./formValidationSchemas";
-import { Day } from "@prisma/client";
+import { Day, Prisma } from "@prisma/client";
 import prisma from "./prisma";
 import { hashPassword } from "./password";
 import { randomUUID } from "crypto";
 
-type CurrentState = { success: boolean; error: boolean; id?: string };
+type CurrentState = { success: boolean; error: boolean; id?: string; message?: string };
+
+const nullableString = (value?: string | null) => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+};
+
+const nullableNumber = (value: number | string | null | undefined) => {
+  if (value === "" || value == null) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const subjectConnections = (subjectIds?: string[]) =>
+  (subjectIds ?? [])
+    .map((subjectId) => Number(subjectId))
+    .filter((subjectId) => Number.isInteger(subjectId))
+    .map((id) => ({ id }));
+
+const getUniqueTarget = (err: unknown) => {
+  if (!(err instanceof Prisma.PrismaClientKnownRequestError)) return [];
+  const target = err.meta?.target;
+  return Array.isArray(target) ? target.map(String) : target ? [String(target)] : [];
+};
+
+const isPrismaCode = (err: unknown, code: string) =>
+  err instanceof Prisma.PrismaClientKnownRequestError && err.code === code;
+
+const isUniqueFieldError = (err: unknown, field: string) =>
+  isPrismaCode(err, "P2002") && getUniqueTarget(err).includes(field);
+
+const actionErrorMessage = (err: unknown) => {
+  if (isPrismaCode(err, "P2002")) {
+    const target = getUniqueTarget(err);
+    if (target.includes("email")) return "This email is already used.";
+    if (target.includes("phone")) return "This phone number is already used.";
+    if (target.includes("studentId")) return "A student ID conflict occurred. Please try again.";
+    if (target.includes("teacherId")) return "A teacher ID conflict occurred. Please try again.";
+    return "A record with the same unique information already exists.";
+  }
+
+  return "Something went wrong. Please check all fields and try again.";
+};
 
 export const createSubject = async (
   currentState: CurrentState,
@@ -36,7 +78,7 @@ export const createSubject = async (
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: actionErrorMessage(err) };
   }
 };
 
@@ -61,7 +103,7 @@ export const updateSubject = async (
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: actionErrorMessage(err) };
   }
 };
 
@@ -81,7 +123,7 @@ export const deleteSubject = async (
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: actionErrorMessage(err) };
   }
 };
 
@@ -101,7 +143,7 @@ export const createClass = async (
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: actionErrorMessage(err) };
   }
 };
 
@@ -153,28 +195,25 @@ export const createTeacher = async (
   data: TeacherSchema
 ) => {
   try {
-    const rawPassword = data.password || data.phone || "12345678";
+    const rawPassword = data.password || nullableString(data.phone) || "12345678";
     const hashedPassword = await hashPassword(rawPassword);
+    const subjects = subjectConnections(data.subjects);
 
     await prisma.teacher.create({
       data: {
         id: randomUUID(),
         password: hashedPassword,
-        name: data.name,
-        surname: data.surname,
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
+        name: data.name.trim(),
+        surname: data.surname.trim(),
+        email: nullableString(data.email),
+        phone: nullableString(data.phone),
+        address: data.address.trim(),
+        img: nullableString(data.img),
+        bloodType: data.bloodType.trim(),
         sex: data.sex,
         birthday: data.birthday,
-        monthlySalary: data.monthlySalary ? Number(data.monthlySalary) : null,
-        subjects: {
-          connect: data.subjects?.map((subjectId: string) => ({
-            id: parseInt(subjectId),
-          })),
-        },
+        monthlySalary: nullableNumber(data.monthlySalary),
+        ...(subjects.length > 0 ? { subjects: { connect: subjects } } : {}),
       },
     });
 
@@ -182,7 +221,7 @@ export const createTeacher = async (
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: actionErrorMessage(err) };
   }
 };
 
@@ -198,6 +237,7 @@ export const updateTeacher = async (
       data.password && data.password !== ""
         ? { password: await hashPassword(data.password) }
         : {};
+    const subjects = subjectConnections(data.subjects);
 
     await prisma.teacher.update({
       where: {
@@ -205,20 +245,18 @@ export const updateTeacher = async (
       },
       data: {
         ...teacherPasswordUpdate,
-        name: data.name,
-        surname: data.surname,
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
+        name: data.name.trim(),
+        surname: data.surname.trim(),
+        email: nullableString(data.email),
+        phone: nullableString(data.phone),
+        address: data.address.trim(),
+        img: nullableString(data.img),
+        bloodType: data.bloodType.trim(),
         sex: data.sex,
         birthday: data.birthday,
-        monthlySalary: data.monthlySalary ? Number(data.monthlySalary) : null,
+        monthlySalary: nullableNumber(data.monthlySalary),
         subjects: {
-          set: data.subjects?.map((subjectId: string) => ({
-            id: parseInt(subjectId),
-          })),
+          set: subjects,
         },
       },
     });
@@ -226,7 +264,7 @@ export const updateTeacher = async (
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: actionErrorMessage(err) };
   }
 };
 
@@ -250,14 +288,17 @@ export const deleteTeacher = async (
   }
 };
 
-const generateStudentId = async (classId: number): Promise<number> => {
-  const cls = await prisma.class.findUnique({ where: { id: classId } });
+const generateStudentId = async (
+  classId: number,
+  client: typeof prisma | Prisma.TransactionClient = prisma
+): Promise<number> => {
+  const cls = await client.class.findUnique({ where: { id: classId } });
   if (!cls) throw new Error("Class not found");
   const classLevel = parseInt(cls.name);
   if (isNaN(classLevel)) throw new Error("Class name must be a number");
   const year = new Date().getFullYear() % 100;
   const prefix = year * 100000 + classLevel * 1000;
-  const last = await prisma.student.findFirst({
+  const last = await client.student.findFirst({
     where: { studentId: { gte: prefix, lt: prefix + 1000 } },
     orderBy: { studentId: "desc" },
   });
@@ -266,97 +307,136 @@ const generateStudentId = async (classId: number): Promise<number> => {
   return prefix + serial;
 };
 
+const studentMutationData = (data: StudentSchema) => ({
+  name: data.name.trim(),
+  surname: data.surname.trim(),
+  phone: nullableString(data.phone),
+  address: data.address.trim(),
+  img: nullableString(data.img),
+  bloodType: data.bloodType.trim(),
+  sex: data.sex,
+  birthday: data.birthday,
+  classId: data.classId,
+  section: nullableString(data.section),
+  fatherName: nullableString(data.fatherName),
+  motherName: nullableString(data.motherName),
+  rollNo: nullableNumber(data.rollNo),
+  group: nullableString(data.group),
+  shift: nullableString(data.shift),
+  guardianName: nullableString(data.guardianName),
+  guardianPhone: nullableString(data.guardianPhone),
+  customTuitionFee: nullableNumber(data.customTuitionFee),
+  admissionYear: nullableNumber(data.admissionYear),
+  nameBn: nullableString(data.nameBn),
+  birthRegNo: nullableString(data.birthRegNo),
+  prevSchoolName: nullableString(data.prevSchoolName),
+  prevSchoolClass: nullableString(data.prevSchoolClass),
+  prevSchoolSection: nullableString(data.prevSchoolSection),
+  prevSchoolRoll: nullableString(data.prevSchoolRoll),
+  prevTutors: nullableString(data.prevTutors),
+  fatherNameEn: nullableString(data.fatherNameEn),
+  fatherPhone: nullableString(data.fatherPhone),
+  fatherNid: nullableString(data.fatherNid),
+  fatherAddress: nullableString(data.fatherAddress),
+  fatherUpazila: nullableString(data.fatherUpazila),
+  fatherWorkAddress: nullableString(data.fatherWorkAddress),
+  motherNameEn: nullableString(data.motherNameEn),
+  motherNid: nullableString(data.motherNid),
+  religion: nullableString(data.religion),
+  birthVillage: nullableString(data.birthVillage),
+  birthDistrict: nullableString(data.birthDistrict),
+  birthUpazila: nullableString(data.birthUpazila),
+  birthThana: nullableString(data.birthThana),
+  permVillage: nullableString(data.permVillage),
+  permDistrict: nullableString(data.permDistrict),
+  permUpazila: nullableString(data.permUpazila),
+  permThana: nullableString(data.permThana),
+  prevPassMarks: nullableNumber(data.prevPassMarks),
+  prevSubjectCount: nullableNumber(data.prevSubjectCount),
+  prevSession: nullableString(data.prevSession),
+});
+
 export const createStudent = async (
   currentState: CurrentState,
   data: StudentSchema
 ) => {
-  try {
-    const classItem = await prisma.class.findUnique({
-      where: { id: data.classId },
-      include: { _count: { select: { students: true } } },
-    });
+  const admissionFeeAmount = nullableNumber(data.admissionFee) ?? 0;
 
-    if (classItem && classItem.capacity === classItem._count.students) {
-      return { success: false, error: true };
-    }
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const result = await prisma.$transaction(
+        async (tx) => {
+          const classItem = await tx.class.findUnique({
+            where: { id: data.classId },
+            include: { _count: { select: { students: true } } },
+          });
 
-    const studentId = await generateStudentId(data.classId);
-    const hashedPassword = await hashPassword(studentId.toString());
-    const newId = randomUUID();
+          if (!classItem) {
+            return {
+              success: false as const,
+              message: "Selected class was not found.",
+            };
+          }
 
-    await prisma.student.create({
-      data: {
-        id: newId,
-        studentId,
-        password: hashedPassword,
-        name: data.name,
-        surname: data.surname,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
-        classId: data.classId,
-        section: data.section || null,
-        fatherName: data.fatherName || null,
-        motherName: data.motherName || null,
-        rollNo: data.rollNo !== "" && data.rollNo != null ? Number(data.rollNo) : null,
-        group: data.group || null,
-        shift: data.shift || null,
-        guardianName: data.guardianName || null,
-        guardianPhone: data.guardianPhone || null,
-        customTuitionFee: data.customTuitionFee !== "" && data.customTuitionFee != null ? Number(data.customTuitionFee) : null,
-        admissionYear: data.admissionYear !== "" && data.admissionYear != null ? Number(data.admissionYear) : null,
-        nameBn: data.nameBn || null,
-        birthRegNo: data.birthRegNo || null,
-        prevSchoolName: data.prevSchoolName || null,
-        prevSchoolClass: data.prevSchoolClass || null,
-        prevSchoolSection: data.prevSchoolSection || null,
-        prevSchoolRoll: data.prevSchoolRoll || null,
-        prevTutors: data.prevTutors || null,
-        fatherNameEn: data.fatherNameEn || null,
-        fatherPhone: data.fatherPhone || null,
-        fatherNid: data.fatherNid || null,
-        fatherAddress: data.fatherAddress || null,
-        fatherUpazila: data.fatherUpazila || null,
-        fatherWorkAddress: data.fatherWorkAddress || null,
-        motherNameEn: data.motherNameEn || null,
-        motherNid: data.motherNid || null,
-        religion: data.religion || null,
-        birthVillage: data.birthVillage || null,
-        birthDistrict: data.birthDistrict || null,
-        birthUpazila: data.birthUpazila || null,
-        birthThana: data.birthThana || null,
-        permVillage: data.permVillage || null,
-        permDistrict: data.permDistrict || null,
-        permUpazila: data.permUpazila || null,
-        permThana: data.permThana || null,
-        prevPassMarks: data.prevPassMarks !== "" && data.prevPassMarks != null ? Number(data.prevPassMarks) : null,
-        prevSubjectCount: data.prevSubjectCount !== "" && data.prevSubjectCount != null ? Number(data.prevSubjectCount) : null,
-        prevSession: data.prevSession || null,
-      },
-    });
+          if (classItem.capacity <= classItem._count.students) {
+            return {
+              success: false as const,
+              message: "Selected class is already full.",
+            };
+          }
 
-    const admissionFeeAmount = Number(data.admissionFee);
-    if (admissionFeeAmount > 0) {
-      const year = data.admissionYear ? Number(data.admissionYear) : new Date().getFullYear();
-      await prisma.feeCollection.create({
-        data: {
-          studentId: newId,
-          name: `Admission Fee ${year}`,
-          amount: admissionFeeAmount,
-          status: "UNPAID",
+          const studentId = await generateStudentId(data.classId, tx);
+          const hashedPassword = await hashPassword(studentId.toString());
+          const newId = randomUUID();
+
+          await tx.student.create({
+            data: {
+              id: newId,
+              studentId,
+              password: hashedPassword,
+              ...studentMutationData(data),
+            },
+          });
+
+          if (admissionFeeAmount > 0) {
+            const year = nullableNumber(data.admissionYear) ?? new Date().getFullYear();
+            await tx.feeCollection.create({
+              data: {
+                studentId: newId,
+                name: `Admission Fee ${year}`,
+                amount: admissionFeeAmount,
+                status: "UNPAID",
+              },
+            });
+          }
+
+          return { success: true as const, id: newId };
         },
-      });
-    }
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+      );
 
-    revalidatePath("/list/students");
-    return { success: true, error: false, id: newId };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+      if (!result.success) {
+        return { success: false, error: true, message: result.message };
+      }
+
+      revalidatePath("/list/students");
+      return { success: true, error: false, id: result.id };
+    } catch (err) {
+      const shouldRetry =
+        isUniqueFieldError(err, "studentId") || isPrismaCode(err, "P2034");
+
+      if (shouldRetry && attempt < 3) continue;
+
+      console.log(err);
+      return { success: false, error: true, message: actionErrorMessage(err) };
+    }
   }
+
+  return {
+    success: false,
+    error: true,
+    message: "Student admission could not be completed. Please try again.",
+  };
 };
 
 export const updateStudent = async (
@@ -371,61 +451,14 @@ export const updateStudent = async (
       where: {
         id: data.id,
       },
-      data: {
-        name: data.name,
-        surname: data.surname,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
-        classId: data.classId,
-        section: data.section || null,
-        fatherName: data.fatherName || null,
-        motherName: data.motherName || null,
-        rollNo: data.rollNo !== "" && data.rollNo != null ? Number(data.rollNo) : null,
-        group: data.group || null,
-        shift: data.shift || null,
-        guardianName: data.guardianName || null,
-        guardianPhone: data.guardianPhone || null,
-        customTuitionFee: data.customTuitionFee !== "" && data.customTuitionFee != null ? Number(data.customTuitionFee) : null,
-        admissionYear: data.admissionYear !== "" && data.admissionYear != null ? Number(data.admissionYear) : null,
-        nameBn: data.nameBn || null,
-        birthRegNo: data.birthRegNo || null,
-        prevSchoolName: data.prevSchoolName || null,
-        prevSchoolClass: data.prevSchoolClass || null,
-        prevSchoolSection: data.prevSchoolSection || null,
-        prevSchoolRoll: data.prevSchoolRoll || null,
-        prevTutors: data.prevTutors || null,
-        fatherNameEn: data.fatherNameEn || null,
-        fatherPhone: data.fatherPhone || null,
-        fatherNid: data.fatherNid || null,
-        fatherAddress: data.fatherAddress || null,
-        fatherUpazila: data.fatherUpazila || null,
-        fatherWorkAddress: data.fatherWorkAddress || null,
-        motherNameEn: data.motherNameEn || null,
-        motherNid: data.motherNid || null,
-        religion: data.religion || null,
-        birthVillage: data.birthVillage || null,
-        birthDistrict: data.birthDistrict || null,
-        birthUpazila: data.birthUpazila || null,
-        birthThana: data.birthThana || null,
-        permVillage: data.permVillage || null,
-        permDistrict: data.permDistrict || null,
-        permUpazila: data.permUpazila || null,
-        permThana: data.permThana || null,
-        prevPassMarks: data.prevPassMarks !== "" && data.prevPassMarks != null ? Number(data.prevPassMarks) : null,
-        prevSubjectCount: data.prevSubjectCount !== "" && data.prevSubjectCount != null ? Number(data.prevSubjectCount) : null,
-        prevSession: data.prevSession || null,
-      },
+      data: studentMutationData(data),
     });
     revalidatePath("/list/students");
     revalidatePath(`/list/students/${data.id}`);
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: actionErrorMessage(err) };
   }
 };
 
