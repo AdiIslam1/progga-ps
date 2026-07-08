@@ -73,7 +73,7 @@ export default async function AdmitCardsPage({
               name: s.name,
               surname: s.surname,
               studentId: s.studentId,
-              className: s.class?.name ?? "",
+              className: s.class?.name ?? selectedClass?.name ?? null,
               section: s.section ?? null,
               rollNo: s.rollNo ?? null,
             }))}
