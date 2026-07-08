@@ -17,6 +17,8 @@ import { randomUUID } from "crypto";
 
 type CurrentState = { success: boolean; error: boolean; id?: string; message?: string };
 
+class StudentIdGenerationError extends Error {}
+
 const nullableString = (value?: string | null) => {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
@@ -47,6 +49,10 @@ const isUniqueFieldError = (err: unknown, field: string) =>
   isPrismaCode(err, "P2002") && getUniqueTarget(err).includes(field);
 
 const actionErrorMessage = (err: unknown) => {
+  if (err instanceof StudentIdGenerationError) {
+    return err.message;
+  }
+
   if (isPrismaCode(err, "P2002")) {
     const target = getUniqueTarget(err);
     if (target.includes("email")) return "This email is already used.";
@@ -294,8 +300,7 @@ const generateStudentId = async (
 ): Promise<number> => {
   const cls = await client.class.findUnique({ where: { id: classId } });
   if (!cls) throw new Error("Class not found");
-  const classLevel = parseInt(cls.name);
-  if (isNaN(classLevel)) throw new Error("Class name must be a number");
+  const classLevel = resolveStudentIdClassCode(cls);
   const year = new Date().getFullYear() % 100;
   const prefix = year * 100000 + classLevel * 1000;
   const last = await client.student.findFirst({
@@ -305,6 +310,33 @@ const generateStudentId = async (
   const serial = last ? (last.studentId % 1000) + 1 : 1;
   if (serial > 999) throw new Error("Student ID limit reached for this class and year");
   return prefix + serial;
+};
+
+const PRE_PRIMARY_CLASS_CODES: { pattern: RegExp; code: number }[] = [
+  { pattern: /\bplay\b/i, code: 91 },
+  { pattern: /\bnursery\b/i, code: 92 },
+  { pattern: /\bkindergarten\b|\bk\.?\s*g\b/i, code: 93 },
+];
+
+const resolveStudentIdClassCode = (cls: { id: number; name: string }) => {
+  const numericPrefix = cls.name.trim().match(/^\d+/)?.[0];
+  if (numericPrefix) {
+    const code = Number(numericPrefix);
+    if (code >= 0 && code <= 99) return code;
+  }
+
+  const matchedCode = PRE_PRIMARY_CLASS_CODES.find(({ pattern }) =>
+    pattern.test(cls.name)
+  )?.code;
+
+  if (matchedCode) return matchedCode;
+
+  const fallbackCode = cls.id + 50;
+  if (fallbackCode >= 0 && fallbackCode <= 99) return fallbackCode;
+
+  throw new StudentIdGenerationError(
+    `Class "${cls.name}" needs a student ID code before admitting students.`
+  );
 };
 
 const studentMutationData = (data: StudentSchema) => ({
