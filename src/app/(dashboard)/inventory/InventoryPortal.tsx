@@ -13,7 +13,6 @@ import {
   Boxes,
   PackagePlus,
   Pencil,
-  Plus,
   RotateCcw,
   Save,
   Search,
@@ -290,14 +289,6 @@ export default function InventoryPortal({
             Stock, sale revenue, and purchase costs for school-managed items.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={startNewItem}
-          className="inline-flex items-center justify-center gap-2 bg-lamaSky hover:bg-[#1e40af] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-colors"
-        >
-          <Plus size={15} />
-          New Item
-        </button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
