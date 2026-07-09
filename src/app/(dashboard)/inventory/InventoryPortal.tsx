@@ -324,7 +324,7 @@ export default function InventoryPortal({
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex flex-col gap-6 min-w-0">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
             <div className="p-4 border-b border-gray-50 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -373,7 +373,7 @@ export default function InventoryPortal({
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
+                <table className="w-full min-w-[920px] text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50 text-gray-500 font-bold uppercase text-[9px] tracking-wider">
                       <th className="p-4">Item</th>
@@ -382,7 +382,7 @@ export default function InventoryPortal({
                       <th className="p-4">Selling</th>
                       <th className="p-4">Profit/Unit</th>
                       <th className="p-4">Value</th>
-                      <th className="p-4 text-right min-w-80">Actions</th>
+                      <th className="p-4 text-right w-[270px]">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -435,8 +435,8 @@ export default function InventoryPortal({
                           <td className="p-4 font-extrabold text-gray-900">
                             {currency(item.quantityInStock * item.buyingPrice)}
                           </td>
-                          <td className="p-4">
-                            <div className="flex justify-end gap-2 flex-wrap">
+                          <td className="p-4 w-[270px]">
+                            <div className="ml-auto grid w-[250px] grid-cols-[68px_94px_64px] gap-2">
                               <ActionButton
                                 label="Edit item"
                                 text="Edit"
@@ -473,6 +473,7 @@ export default function InventoryPortal({
                                 }
                                 disabled={loadingKey === `status-${item.id}`}
                                 danger={item.isActive}
+                                className="col-span-2"
                               />
                             </div>
                           </td>
@@ -574,7 +575,7 @@ export default function InventoryPortal({
           </div>
         </div>
 
-        <aside className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm h-fit xl:sticky xl:top-6">
+        <aside className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm h-fit xl:sticky xl:top-6">
           <div className="flex items-start justify-between gap-3 mb-5">
             <div>
               <h2 className="text-sm font-bold text-gray-800">{panelTitle}</h2>
@@ -597,7 +598,7 @@ export default function InventoryPortal({
           </div>
 
           {mode === "create" || mode === "edit" ? (
-            <form onSubmit={handleCreateOrUpdate} className="flex flex-col gap-3">
+            <form onSubmit={handleCreateOrUpdate} className="flex flex-col gap-2.5">
               <TextField
                 label="Item Name"
                 value={itemForm.name}
@@ -611,7 +612,7 @@ export default function InventoryPortal({
                 onChange={(value) => setItemForm((prev) => ({ ...prev, category: value }))}
                 placeholder="Books"
               />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 <TextField
                   label="Buying Price"
                   type="number"
@@ -653,7 +654,7 @@ export default function InventoryPortal({
               </button>
             </form>
           ) : selectedItem ? (
-            <form onSubmit={handleMovement} className="flex flex-col gap-3">
+            <form onSubmit={handleMovement} className="flex flex-col gap-2.5">
               {mode === "adjust" ? (
                 <TextField
                   label="Quantity Change"
@@ -778,6 +779,7 @@ function ActionButton({
   onClick,
   disabled,
   danger,
+  className = "",
 }: {
   label: string;
   text: string;
@@ -785,6 +787,7 @@ function ActionButton({
   onClick: () => void;
   disabled?: boolean;
   danger?: boolean;
+  className?: string;
 }) {
   return (
     <button
@@ -792,11 +795,11 @@ function ActionButton({
       onClick={onClick}
       title={label}
       disabled={disabled}
-      className={`min-h-9 px-3 rounded-lg inline-flex items-center justify-center gap-1.5 text-[11px] font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+      className={`min-h-9 px-2.5 rounded-lg inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-[11px] font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
         danger
           ? "bg-red-50 text-red-500 hover:bg-red-100"
           : "bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-      }`}
+      } ${className}`}
     >
       {icon}
       <span>{text}</span>
@@ -835,7 +838,7 @@ function TextField({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         required={required}
-        className="ring-1 ring-gray-200 p-2.5 rounded-xl text-xs w-full outline-none focus:ring-2 focus:ring-lamaSky transition-all placeholder:text-gray-300"
+        className="ring-1 ring-gray-200 px-3 py-2 rounded-xl text-xs w-full outline-none focus:ring-2 focus:ring-lamaSky transition-all placeholder:text-gray-300"
       />
     </div>
   );
@@ -860,7 +863,7 @@ function TextArea({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         rows={3}
-        className="ring-1 ring-gray-200 p-2.5 rounded-xl text-xs w-full outline-none focus:ring-2 focus:ring-lamaSky transition-all placeholder:text-gray-300 resize-none"
+        className="ring-1 ring-gray-200 px-3 py-2 rounded-xl text-xs w-full outline-none focus:ring-2 focus:ring-lamaSky transition-all placeholder:text-gray-300 resize-none"
       />
     </div>
   );
