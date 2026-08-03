@@ -27,3 +27,11 @@ export async function currentUser() {
     lastName: user.name?.split(" ").slice(1).join(" "),
   };
 }
+
+export async function authorizeRoles(allowedRoles: readonly UserRole[]) {
+  const sessionData = await auth();
+  if (!sessionData.role || !allowedRoles.includes(sessionData.role)) {
+    return null;
+  }
+  return sessionData;
+}

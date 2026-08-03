@@ -2,7 +2,23 @@
 
 import prisma from "./prisma";
 import { revalidatePath } from "next/cache";
-import { SalaryStatus, SalaryType } from "@prisma/client";
+import { Prisma, SalaryStatus, SalaryType } from "@prisma/client";
+import { authorizeRoles } from "./auth-server";
+import { randomUUID } from "crypto";
+
+const requireAdmin = () => authorizeRoles(["admin"]);
+const unauthorized = () => ({
+  success: false as const,
+  error: true as const,
+  message: "Only admins can manage payroll.",
+});
+
+class SalaryPaymentConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    Object.setPrototypeOf(this, SalaryPaymentConflictError.prototype);
+  }
+}
 
 const revalidateAll = () => {
   revalidatePath("/salaries/billing");
@@ -15,6 +31,7 @@ export const billTeacherSalary = async (
   teacherId: string,
   month: string // "YYYY-MM"
 ) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     const teacher = await prisma.teacher.findUnique({
       where: { id: teacherId },
@@ -50,6 +67,7 @@ export const billTeacherSalary = async (
 };
 
 export const billAllTeacherSalaries = async (month: string) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     const teachers = await prisma.teacher.findMany({
       where: { monthlySalary: { not: null } },
@@ -102,6 +120,7 @@ export const updateSalaryAdjustment = async (
   deduction: number,
   note: string
 ) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     await prisma.salaryCollection.update({
       where: { id },
@@ -120,52 +139,89 @@ export const processSalaryPayment = async (
   collectionIds: number[],
   cashierUsername: string
 ) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     if (collectionIds.length === 0)
       return { success: false, message: "No salary records selected." };
 
-    const collections = await prisma.salaryCollection.findMany({
-      where: { id: { in: collectionIds }, teacherId },
-    });
-
-    if (collections.length === 0)
-      return { success: false, message: "No matching salary records found." };
+    const uniqueCollectionIds = Array.from(new Set(collectionIds));
+    if (uniqueCollectionIds.length !== collectionIds.length) {
+      return { success: false, message: "The payment request contains duplicate records." };
+    }
 
     const dateStr = new Date().toISOString().slice(0, 7).replace("-", "");
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const randomSuffix = randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase();
     const receiptNo = `SAL-${dateStr}-${randomSuffix}`;
 
-    const totalAmount = collections.reduce(
-      (s, c) => s + c.amount + c.bonus - c.deduction,
-      0
-    );
-
-    await prisma.$transaction([
-      ...collections.map((c) =>
-        prisma.salaryCollection.update({
-          where: { id: c.id },
-          data: {
-            status: SalaryStatus.PAID,
-            paidAmount: c.amount + c.bonus - c.deduction,
-            paidAt: new Date(),
-            receiptNo: collections.length === 1 ? receiptNo : `${receiptNo}-${c.id}`,
-            receivedById: cashierUsername,
+    await prisma.$transaction(
+      async (tx) => {
+        const collections = await tx.salaryCollection.findMany({
+          where: {
+            id: { in: uniqueCollectionIds },
+            teacherId,
+            status: SalaryStatus.UNPAID,
           },
-        })
-      ),
-      prisma.expense.create({
-        data: {
-          title: collections.map((c) => c.name).join(", "),
-          amount: totalAmount,
-          category: "Salaries & Payroll",
-        },
-      }),
-    ]);
+          orderBy: { id: "asc" },
+        });
+
+        if (collections.length !== uniqueCollectionIds.length) {
+          throw new SalaryPaymentConflictError(
+            "One or more salary records are invalid or have already been paid. Refresh before trying again."
+          );
+        }
+
+        const totalAmount = collections.reduce(
+          (sum, collection) =>
+            sum + collection.amount + collection.bonus - collection.deduction,
+          0
+        );
+
+        for (const collection of collections) {
+          const updated = await tx.salaryCollection.updateMany({
+            where: { id: collection.id, status: SalaryStatus.UNPAID },
+            data: {
+              status: SalaryStatus.PAID,
+              paidAmount: collection.amount + collection.bonus - collection.deduction,
+              paidAt: new Date(),
+              receiptNo:
+                collections.length === 1 ? receiptNo : `${receiptNo}-${collection.id}`,
+              receivedById: cashierUsername,
+            },
+          });
+          if (updated.count !== 1) {
+            throw new SalaryPaymentConflictError(
+              "A selected salary record changed while payment was processing. Refresh before trying again."
+            );
+          }
+        }
+
+        await tx.expense.create({
+          data: {
+            title: collections.map((collection) => collection.name).join(", "),
+            amount: totalAmount,
+            category: "Salaries & Payroll",
+          },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    );
 
     revalidateAll();
     return { success: true, receiptNo };
   } catch (err) {
     console.error(err);
+    if (
+      err instanceof SalaryPaymentConflictError ||
+      (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2034")
+    ) {
+      return {
+        success: false,
+        message:
+          err instanceof SalaryPaymentConflictError
+            ? err.message
+            : "Another payment changed these records. Refresh before trying again.",
+      };
+    }
     return { success: false, message: "Failed to process salary payment." };
   }
 };
@@ -175,6 +231,7 @@ export const createBonusPackage = async (
   amount: number,
   description: string
 ) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     await prisma.bonusPackage.create({
       data: { name, amount, description: description || null },
@@ -188,6 +245,7 @@ export const createBonusPackage = async (
 };
 
 export const deleteBonusPackage = async (id: number) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     await prisma.bonusPackage.delete({ where: { id } });
     revalidateAll();
@@ -199,6 +257,7 @@ export const deleteBonusPackage = async (id: number) => {
 };
 
 export const applyBonusPackage = async (packageId: number, month: string) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     const pkg = await prisma.bonusPackage.findUnique({ where: { id: packageId } });
     if (!pkg) return { success: false, message: "Bonus package not found." };
@@ -248,6 +307,7 @@ export const applyBonusPackage = async (packageId: number, month: string) => {
 };
 
 export const deleteSalaryCollection = async (id: number) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     await prisma.salaryCollection.delete({ where: { id } });
     revalidateAll();

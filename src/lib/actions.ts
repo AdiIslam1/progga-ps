@@ -14,8 +14,18 @@ import { Day, Prisma } from "@prisma/client";
 import prisma from "./prisma";
 import { hashPassword } from "./password";
 import { randomUUID } from "crypto";
+import { authorizeRoles } from "./auth-server";
 
 type CurrentState = { success: boolean; error: boolean; id?: string; message?: string };
+
+const unauthorizedAction = () => ({
+  success: false as const,
+  error: true as const,
+  message: "You are not authorized to perform this action.",
+});
+
+const requireAdmin = () => authorizeRoles(["admin"]);
+const requireStaff = () => authorizeRoles(["admin", "teacher"]);
 
 class StudentIdGenerationError extends Error {}
 
@@ -69,6 +79,7 @@ export const createSubject = async (
   currentState: CurrentState,
   data: SubjectSchema
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   try {
     await prisma.subject.create({
       data: {
@@ -92,6 +103,7 @@ export const updateSubject = async (
   currentState: CurrentState,
   data: SubjectSchema
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   try {
     await prisma.subject.update({
       where: {
@@ -117,6 +129,7 @@ export const deleteSubject = async (
   currentState: CurrentState,
   data: FormData
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   const id = data.get("id") as string;
   try {
     await prisma.subject.delete({
@@ -137,6 +150,7 @@ export const createClass = async (
   currentState: CurrentState,
   data: ClassSchema
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   try {
     await prisma.class.create({
       data: {
@@ -157,6 +171,7 @@ export const updateClass = async (
   currentState: CurrentState,
   data: ClassSchema
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   try {
     await prisma.class.update({
       where: {
@@ -180,6 +195,7 @@ export const deleteClass = async (
   currentState: CurrentState,
   data: FormData
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   const id = data.get("id") as string;
   try {
     await prisma.class.delete({
@@ -200,6 +216,7 @@ export const createTeacher = async (
   currentState: CurrentState,
   data: TeacherSchema
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   try {
     const rawPassword = data.password || nullableString(data.phone) || "12345678";
     const hashedPassword = await hashPassword(rawPassword);
@@ -235,6 +252,7 @@ export const updateTeacher = async (
   currentState: CurrentState,
   data: TeacherSchema
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   if (!data.id) {
     return { success: false, error: true };
   }
@@ -278,6 +296,7 @@ export const deleteTeacher = async (
   currentState: CurrentState,
   data: FormData
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   const id = data.get("id") as string;
   try {
     await prisma.teacher.delete({
@@ -392,6 +411,7 @@ export const createStudent = async (
   currentState: CurrentState,
   data: StudentSchema
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   const admissionFeeAmount = nullableNumber(data.admissionFee) ?? 0;
 
   for (let attempt = 1; attempt <= 3; attempt++) {
@@ -475,6 +495,7 @@ export const updateStudent = async (
   currentState: CurrentState,
   data: StudentSchema
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   if (!data.id) {
     return { success: false, error: true };
   }
@@ -498,6 +519,7 @@ export const deleteStudent = async (
   currentState: CurrentState,
   data: FormData
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   const id = data.get("id") as string;
   try {
     await prisma.student.delete({
@@ -518,6 +540,7 @@ export const createExam = async (
   currentState: CurrentState,
   data: ExamSchema
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   try {
     await prisma.exam.create({
       data: {
@@ -540,6 +563,7 @@ export const updateExam = async (
   currentState: CurrentState,
   data: ExamSchema
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   try {
     await prisma.exam.update({
       where: { id: data.id },
@@ -563,6 +587,7 @@ export const deleteExam = async (
   currentState: CurrentState,
   data: FormData
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   const id = data.get("id") as string;
 
   // const { userId, sessionClaims } = auth();
@@ -590,6 +615,39 @@ export const saveBulkResults = async (
   subjectId: number,
   results: { studentId: string; score: number }[]
 ) => {
+  const actor = await requireStaff();
+  if (!actor) return { success: false, message: "You are not authorized to record marks." };
+
+  const subject = await prisma.subject.findFirst({
+    where: {
+      id: subjectId,
+      ...(actor.role === "teacher"
+        ? { lessons: { some: { teacherId: actor.userId } } }
+        : {}),
+    },
+    select: { classId: true },
+  });
+  if (!subject) {
+    return {
+      success: false,
+      message:
+        actor.role === "teacher"
+          ? "You can only record marks for your assigned subjects."
+          : "Subject not found.",
+    };
+  }
+
+  const uniqueStudentIds = Array.from(new Set(results.map((result) => result.studentId)));
+  if (uniqueStudentIds.length !== results.length) {
+    return { success: false, message: "The marks submission contains duplicate students." };
+  }
+  const matchingStudents = await prisma.student.count({
+    where: { id: { in: uniqueStudentIds }, classId: subject.classId },
+  });
+  if (matchingStudents !== uniqueStudentIds.length) {
+    return { success: false, message: "One or more students do not belong to this subject's class." };
+  }
+
   try {
     const calculateGradeAndGpa = (score: number) => {
       if (score >= 80) return { grade: "A+", gpa: 5.0 };
@@ -647,6 +705,30 @@ export const saveBulkAttendance = async (
   dateStr: string, // "YYYY-MM-DD"
   attendances: { studentId: string; present: boolean }[]
 ) => {
+  const actor = await requireStaff();
+  if (!actor) return { success: false, message: "You are not authorized to record attendance." };
+
+  if (actor.role === "teacher") {
+    const assignedClass = await prisma.class.findFirst({
+      where: { id: classId, lessons: { some: { teacherId: actor.userId } } },
+      select: { id: true },
+    });
+    if (!assignedClass) {
+      return { success: false, message: "You can only record attendance for your assigned classes." };
+    }
+  }
+
+  const uniqueStudentIds = Array.from(new Set(attendances.map((attendance) => attendance.studentId)));
+  if (uniqueStudentIds.length !== attendances.length) {
+    return { success: false, message: "The attendance submission contains duplicate students." };
+  }
+  const matchingStudents = await prisma.student.count({
+    where: { id: { in: uniqueStudentIds }, classId },
+  });
+  if (matchingStudents !== uniqueStudentIds.length) {
+    return { success: false, message: "One or more students do not belong to this class." };
+  }
+
   try {
     const attendanceDate = new Date(dateStr);
     attendanceDate.setHours(0, 0, 0, 0);
@@ -705,6 +787,7 @@ export const createLesson = async (
   currentState: { success: boolean; error: boolean; message?: string },
   data: LessonSchema
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   try {
     const subject = await prisma.subject.findUnique({
       where: { id: data.subjectId },
@@ -733,6 +816,7 @@ export const updateLesson = async (
   currentState: { success: boolean; error: boolean; message?: string },
   data: LessonSchema
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   if (!data.id) return { success: false, error: true };
   try {
     const subject = await prisma.subject.findUnique({
@@ -763,6 +847,7 @@ export const deleteLesson = async (
   currentState: { success: boolean; error: boolean },
   formData: FormData
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   const id = parseInt(formData.get("id") as string);
   try {
     await prisma.lesson.delete({ where: { id } });
@@ -782,6 +867,7 @@ export const createExamSchedule = async (
   currentState: { success: boolean; error: boolean; message?: string },
   data: ExamScheduleSchema
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   try {
     await prisma.examSchedule.create({
       data: {
@@ -807,6 +893,7 @@ export const updateExamSchedule = async (
   currentState: { success: boolean; error: boolean; message?: string },
   data: ExamScheduleSchema
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   if (!data.id) return { success: false, error: true };
   try {
     await prisma.examSchedule.update({
@@ -832,6 +919,7 @@ export const deleteExamSchedule = async (
   currentState: { success: boolean; error: boolean },
   formData: FormData
 ) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
   const id = parseInt(formData.get("id") as string);
   try {
     await prisma.examSchedule.delete({ where: { id } });
@@ -844,6 +932,7 @@ export const deleteExamSchedule = async (
 };
 
 export const deleteScheduleEntry = async (id: number): Promise<{ success: boolean }> => {
+  if (!(await requireAdmin())) return { success: false };
   try {
     await prisma.examSchedule.delete({ where: { id } });
     revalidatePath("/exams/schedule");
@@ -867,6 +956,7 @@ export const saveBulkSchedule = async (
     totalMarks: number;
   }[]
 ): Promise<{ success: boolean }> => {
+  if (!(await requireAdmin())) return { success: false };
   try {
     for (const entry of entries) {
       if (!entry.date) continue;
@@ -900,6 +990,7 @@ export const resetPassword = async (
   id: string,
   newPassword: string
 ): Promise<{ success: boolean }> => {
+  if (!(await requireAdmin())) return { success: false };
   try {
     const hashedPassword = await hashPassword(newPassword);
 
@@ -930,6 +1021,20 @@ export const upsertReportCard = async (
     mathOlympiad?: boolean;
   }
 ): Promise<{ success: boolean }> => {
+  const actor = await requireStaff();
+  if (!actor) return { success: false };
+
+  if (actor.role === "teacher") {
+    const assignedStudent = await prisma.student.findFirst({
+      where: {
+        id: studentId,
+        class: { lessons: { some: { teacherId: actor.userId } } },
+      },
+      select: { id: true },
+    });
+    if (!assignedStudent) return { success: false };
+  }
+
   try {
     await prisma.reportCard.upsert({
       where: { studentId_academicYear: { studentId, academicYear } },

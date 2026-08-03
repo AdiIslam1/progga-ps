@@ -3,6 +3,9 @@
 import prisma from "./prisma";
 import { revalidatePath } from "next/cache";
 import { NoticeType } from "@prisma/client";
+import { authorizeRoles } from "./auth-server";
+
+const unauthorized = (message: string) => ({ success: false as const, message });
 
 // Greenweb API: GET https://api.greenweb.com.bd/api.php?json&token=TOKEN&to=PHONE&message=MESSAGE
 // Success response: { "success": "01812345678", "error": "" }
@@ -27,6 +30,9 @@ export const saveSmsConfig = async (
   _: any,
   data: { apiUrl: string; apiKey: string; senderId: string }
 ) => {
+  if (!(await authorizeRoles(["admin"]))) {
+    return unauthorized("Only admins can change SMS gateway settings.");
+  }
   try {
     const existing = await prisma.smsConfig.findFirst();
     if (existing) {
@@ -55,6 +61,9 @@ export const sendNoticeSms = async (
     studentId?: string;
   }
 ) => {
+  if (!(await authorizeRoles(["admin", "teacher"]))) {
+    return unauthorized("Only staff can send notices.");
+  }
   try {
     if (!data.title || !data.content) {
       return { success: false, message: "Title and message are required." };
@@ -144,6 +153,9 @@ export const sendAbsenceAlerts = async (
   _: any,
   data: { dateStr: string; messageTemplate: string }
 ) => {
+  if (!(await authorizeRoles(["admin", "teacher"]))) {
+    return unauthorized("Only staff can send absence alerts.");
+  }
   try {
     const date = new Date(data.dateStr);
     date.setHours(0, 0, 0, 0);

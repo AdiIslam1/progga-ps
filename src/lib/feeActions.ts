@@ -2,7 +2,23 @@
 
 import prisma from "./prisma";
 import { revalidatePath } from "next/cache";
-import { FeePackageType, FeeStatus } from "@prisma/client";
+import { FeePackageType, FeeStatus, Prisma } from "@prisma/client";
+import { authorizeRoles } from "./auth-server";
+import { randomUUID } from "crypto";
+
+const requireAdmin = () => authorizeRoles(["admin"]);
+const unauthorized = () => ({
+  success: false as const,
+  error: true as const,
+  message: "Only admins can manage fees and expenses.",
+});
+
+class PaymentConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    Object.setPrototypeOf(this, PaymentConflictError.prototype);
+  }
+}
 
 // Create a fee package (tuition or other fee template)
 export const createFeePackage = async (
@@ -15,6 +31,7 @@ export const createFeePackage = async (
     type: "TUITION" | "OTHER_FEE";
   }
 ) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     const classIdNum = data.classId ? parseInt(data.classId) : undefined;
     await prisma.feePackage.create({
@@ -39,6 +56,7 @@ export const updateFeePackage = async (
   id: number,
   data: { name: string; amount: number; description?: string }
 ) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     await prisma.feePackage.update({
       where: { id },
@@ -58,6 +76,7 @@ export const updateFeePackage = async (
 
 // Delete a fee package
 export const deleteFeePackage = async (id: number) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     await prisma.feePackage.delete({
       where: { id },
@@ -82,6 +101,7 @@ export const billAdditionalFee = async (
     month?: string; // e.g. "2026-05" — required for monthly tuition billing
   }
 ) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     const packageId = data.feePackageId ? parseInt(data.feePackageId) : null;
     const month = data.month || null;
@@ -236,50 +256,74 @@ export const collectFees = async (
   cashierUsername: string,
   discount: number = 0
 ) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     if (collectionIds.length === 0) {
       return { success: false, message: "No unpaid items selected" };
     }
 
-    const dateStr = new Date().toISOString().slice(0, 7).replace("-", "");
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const receiptNo = `REC-${dateStr}-${randomSuffix}`;
-
-    const collections = await prisma.feeCollection.findMany({
-      where: { id: { in: collectionIds }, studentId },
-    });
-
-    if (collections.length === 0) {
-      return { success: false, message: "No matching fee records found" };
+    const uniqueCollectionIds = Array.from(new Set(collectionIds));
+    if (uniqueCollectionIds.length !== collectionIds.length) {
+      return { success: false, message: "The payment request contains duplicate items." };
     }
 
-    // Distribute discount proportionally across items; adjust last item for rounding
-    const subtotal = collections.reduce((s, c) => s + c.amount, 0);
-    const safeDiscount = Math.min(Math.max(discount, 0), subtotal);
-
-    let distributed = 0;
-    const paidAmounts = collections.map((c, i) => {
-      if (i === collections.length - 1) {
-        return c.amount - (safeDiscount - distributed);
-      }
-      const share = parseFloat(((c.amount / subtotal) * safeDiscount).toFixed(2));
-      distributed += share;
-      return c.amount - share;
-    });
+    const dateStr = new Date().toISOString().slice(0, 7).replace("-", "");
+    const randomSuffix = randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase();
+    const receiptNo = `REC-${dateStr}-${randomSuffix}`;
 
     await prisma.$transaction(
-      collections.map((c, i) =>
-        prisma.feeCollection.update({
-          where: { id: c.id },
-          data: {
-            status: FeeStatus.PAID,
-            paidAmount: Math.max(0, paidAmounts[i]),
-            paidAt: new Date(),
-            receiptNo,
-            receivedById: cashierUsername,
+      async (tx) => {
+        const collections = await tx.feeCollection.findMany({
+          where: {
+            id: { in: uniqueCollectionIds },
+            studentId,
+            status: FeeStatus.UNPAID,
           },
-        })
-      )
+          orderBy: { id: "asc" },
+        });
+
+        if (collections.length !== uniqueCollectionIds.length) {
+          throw new PaymentConflictError(
+            "One or more fee items are invalid or have already been paid. Refresh before trying again."
+          );
+        }
+
+        // Distribute discount proportionally across items; adjust last item for rounding
+        const subtotal = collections.reduce((sum, collection) => sum + collection.amount, 0);
+        const safeDiscount = Math.min(Math.max(discount, 0), subtotal);
+
+        let distributed = 0;
+        const paidAmounts = collections.map((collection, index) => {
+          if (index === collections.length - 1) {
+            return collection.amount - (safeDiscount - distributed);
+          }
+          const share = parseFloat(
+            ((collection.amount / subtotal) * safeDiscount).toFixed(2)
+          );
+          distributed += share;
+          return collection.amount - share;
+        });
+
+        for (let index = 0; index < collections.length; index++) {
+          const collection = collections[index];
+          const updated = await tx.feeCollection.updateMany({
+            where: { id: collection.id, status: FeeStatus.UNPAID },
+            data: {
+              status: FeeStatus.PAID,
+              paidAmount: Math.max(0, paidAmounts[index]),
+              paidAt: new Date(),
+              receiptNo,
+              receivedById: cashierUsername,
+            },
+          });
+          if (updated.count !== 1) {
+            throw new PaymentConflictError(
+              "A selected fee item changed while payment was processing. Refresh before trying again."
+            );
+          }
+        }
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
     );
 
     revalidatePath("/fees/collect");
@@ -289,6 +333,15 @@ export const collectFees = async (
     return { success: true, receiptNo };
   } catch (err) {
     console.error(err);
+    if (err instanceof PaymentConflictError || (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2034")) {
+      return {
+        success: false,
+        message:
+          err instanceof PaymentConflictError
+            ? err.message
+            : "Another payment changed these items. Refresh before trying again.",
+      };
+    }
     return { success: false, message: "Failed to confirm payments" };
   }
 };
@@ -298,6 +351,7 @@ export const setCustomTuitionFee = async (
   studentId: string,
   amount: number | null
 ) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     await prisma.student.update({
       where: { id: studentId },
@@ -313,6 +367,7 @@ export const setCustomTuitionFee = async (
 
 // Edit the amount of an unpaid fee collection record
 export const updateFeeAmount = async (id: number, amount: number) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     const fee = await prisma.feeCollection.findUnique({ where: { id }, select: { status: true } });
     if (!fee || fee.status === "PAID") {
@@ -335,6 +390,7 @@ export const bulkAdmissionFee = async (data: {
   year: number;
   amount: number;
 }) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     const feeName = `Admission Fee ${data.year}`;
 
@@ -395,6 +451,7 @@ export const createExpense = async (
     category: string;
   }
 ) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     await prisma.expense.create({
       data: {
@@ -414,6 +471,7 @@ export const createExpense = async (
 
 // Delete an expense record
 export const deleteExpense = async (id: number) => {
+  if (!(await requireAdmin())) return unauthorized();
   try {
     await prisma.expense.delete({
       where: { id },
