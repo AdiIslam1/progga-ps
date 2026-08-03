@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth-server";
 import { redirect } from "next/navigation";
 import NoticeBoardPortal from "./NoticeBoardPortal";
+import { getSchoolDateString, parseDateOnlyUtc } from "@/lib/schoolDate";
 
 export default async function NoticesPage() {
   const { role, userId } = await auth();
@@ -23,13 +24,8 @@ export default async function NoticesPage() {
   });
 
   // Today's absent students count for the quick-action card
-  const today = new Date();
-  const offset = today.getTimezoneOffset();
-  const localToday = new Date(today.getTime() - offset * 60 * 1000);
-  const todayStr = localToday.toISOString().split("T")[0];
-
-  const startOfDay = new Date(todayStr);
-  startOfDay.setHours(0, 0, 0, 0);
+  const todayStr = getSchoolDateString();
+  const startOfDay = parseDateOnlyUtc(todayStr)!;
   const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
 
   const absentTodayCount = await prisma.student.count({

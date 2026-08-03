@@ -4,6 +4,7 @@ import prisma from "./prisma";
 import { revalidatePath } from "next/cache";
 import { NoticeType } from "@prisma/client";
 import { authorizeRoles } from "./auth-server";
+import { parseDateOnlyUtc } from "./schoolDate";
 
 const unauthorized = (message: string) => ({ success: false as const, message });
 
@@ -157,8 +158,10 @@ export const sendAbsenceAlerts = async (
     return unauthorized("Only staff can send absence alerts.");
   }
   try {
-    const date = new Date(data.dateStr);
-    date.setHours(0, 0, 0, 0);
+    const date = parseDateOnlyUtc(data.dateStr);
+    if (!date) {
+      return { success: false, message: "Absence date must be a valid YYYY-MM-DD date." };
+    }
     const nextDay = new Date(date.getTime() + 24 * 60 * 60 * 1000);
 
     const absentStudents = await prisma.student.findMany({
