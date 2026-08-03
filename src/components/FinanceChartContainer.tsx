@@ -8,12 +8,8 @@ const FinanceChartContainer = async () => {
   const yearStart = new Date(`${currentYear}-01-01`);
   const yearEnd = new Date(`${currentYear + 1}-01-01`);
 
-  const [feeData, salaryData, expenseData, inventorySales] = await Promise.all([
+  const [feeData, expenseData, inventorySales] = await Promise.all([
     prisma.feeCollection.findMany({
-      where: { status: "PAID", paidAt: { gte: yearStart, lt: yearEnd } },
-      select: { paidAt: true, paidAmount: true },
-    }),
-    prisma.salaryCollection.findMany({
       where: { status: "PAID", paidAt: { gte: yearStart, lt: yearEnd } },
       select: { paidAt: true, paidAmount: true },
     }),
@@ -35,9 +31,6 @@ const FinanceChartContainer = async () => {
   });
   inventorySales.forEach((r) => {
     income[new Date(r.createdAt).getMonth()] += r.totalAmount;
-  });
-  salaryData.forEach((r) => {
-    if (r.paidAt) expense[new Date(r.paidAt).getMonth()] += r.paidAmount;
   });
   expenseData.forEach((r) => {
     expense[new Date(r.date).getMonth()] += r.amount;
