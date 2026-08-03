@@ -22,7 +22,7 @@ export const routeAccessMap: RouteAccessMap = {
   "/fees/packages(.*)": ["admin"],
   "/fees/collect(.*)": ["admin"],
   "/fees/admission-fees(.*)": ["admin"],
-  "/fees/ledger(.*)": ["admin", "student"],
+  "/fees/ledger(.*)": ["admin", "student", "teacher"],
   "/fees/receipt(.*)": ["admin", "student"],
   "/fees/reports(.*)": ["admin"],
   "/salaries/billing(.*)": ["admin"],
