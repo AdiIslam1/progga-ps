@@ -5,6 +5,27 @@ import FinanceChart from "@/components/FinanceChart";
 import ExpenseForm from "./ExpenseForm";
 import DeleteExpenseBtn from "./DeleteExpenseBtn";
 
+const SCHOOL_TIME_ZONE = "Asia/Dhaka";
+
+const getDhakaYear = (date: Date) =>
+  Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: SCHOOL_TIME_ZONE,
+      year: "numeric",
+    }).format(date)
+  );
+
+const getDhakaMonthIndex = (date: Date) =>
+  Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: SCHOOL_TIME_ZONE,
+      month: "numeric",
+    }).format(date)
+  ) - 1;
+
+const getDhakaYearStartUtc = (year: number) =>
+  new Date(Date.UTC(year, 0, 1) - 6 * 60 * 60 * 1000);
+
 export default async function FinanceReportsPage() {
   const { role } = await auth();
 
@@ -13,18 +34,18 @@ export default async function FinanceReportsPage() {
     redirect("/");
   }
 
-  // Get current calendar year boundary for aggregations (2026 based on workspace local time)
-  const currentYear = 2026;
-  const startOfYear = new Date(currentYear, 0, 1);
-  const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
+  // Use the school's Dhaka calendar year, regardless of the deployment server's timezone.
+  const currentYear = getDhakaYear(new Date());
+  const startOfYear = getDhakaYearStartUtc(currentYear);
+  const startOfNextYear = getDhakaYearStartUtc(currentYear + 1);
 
   // Fetch PAID collections this year
   const paidCollections = await prisma.feeCollection.findMany({
     where: {
       status: "PAID",
-      paidAt: {
-        gte: startOfYear,
-        lte: endOfYear,
+        paidAt: {
+          gte: startOfYear,
+          lt: startOfNextYear,
       },
     },
   });
@@ -32,9 +53,9 @@ export default async function FinanceReportsPage() {
   const inventorySales = await prisma.inventoryMovement.findMany({
     where: {
       type: "SALE",
-      createdAt: {
-        gte: startOfYear,
-        lte: endOfYear,
+        createdAt: {
+          gte: startOfYear,
+          lt: startOfNextYear,
       },
     },
   });
@@ -49,9 +70,9 @@ export default async function FinanceReportsPage() {
   // Fetch school operational expenses this year
   const expenses = await prisma.expense.findMany({
     where: {
-      date: {
-        gte: startOfYear,
-        lte: endOfYear,
+        date: {
+          gte: startOfYear,
+          lt: startOfNextYear,
       },
     },
     orderBy: {
@@ -79,7 +100,7 @@ export default async function FinanceReportsPage() {
   // Aggregate collections by month index
   paidCollections.forEach((c) => {
     if (c.paidAt) {
-      const monthIdx = new Date(c.paidAt).getMonth();
+      const monthIdx = getDhakaMonthIndex(c.paidAt);
       if (monthIdx >= 0 && monthIdx < 12) {
         chartData[monthIdx].income += c.paidAmount;
       }
@@ -87,7 +108,7 @@ export default async function FinanceReportsPage() {
   });
 
   inventorySales.forEach((sale) => {
-    const monthIdx = new Date(sale.createdAt).getMonth();
+    const monthIdx = getDhakaMonthIndex(sale.createdAt);
     if (monthIdx >= 0 && monthIdx < 12) {
       chartData[monthIdx].income += sale.totalAmount;
     }
@@ -95,7 +116,7 @@ export default async function FinanceReportsPage() {
 
   // Aggregate expenses by month index
   expenses.forEach((e) => {
-    const monthIdx = new Date(e.date).getMonth();
+    const monthIdx = getDhakaMonthIndex(e.date);
     if (monthIdx >= 0 && monthIdx < 12) {
       chartData[monthIdx].expense += e.amount;
     }
