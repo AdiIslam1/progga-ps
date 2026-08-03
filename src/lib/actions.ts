@@ -913,6 +913,46 @@ export const deleteLesson = async (
   }
 };
 
+export const deleteEvent = async (
+  currentState: { success: boolean; error: boolean; message?: string },
+  formData: FormData
+) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
+  const id = Number(formData.get("id"));
+  if (!Number.isInteger(id)) {
+    return { success: false, error: true, message: "Invalid event ID." };
+  }
+
+  try {
+    await prisma.event.delete({ where: { id } });
+    revalidatePath("/list/events");
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true, message: "Failed to delete event." };
+  }
+};
+
+export const deleteAnnouncement = async (
+  currentState: { success: boolean; error: boolean; message?: string },
+  formData: FormData
+) => {
+  if (!(await requireAdmin())) return unauthorizedAction();
+  const id = Number(formData.get("id"));
+  if (!Number.isInteger(id)) {
+    return { success: false, error: true, message: "Invalid announcement ID." };
+  }
+
+  try {
+    await prisma.announcement.delete({ where: { id } });
+    revalidatePath("/list/announcements");
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true, message: "Failed to delete announcement." };
+  }
+};
+
 // ── EXAM SCHEDULE ACTIONS ──────────────────────────────────────────────────────
 
 const dateToDateTime = (dateStr: string): Date => new Date(dateStr + "T00:00:00");

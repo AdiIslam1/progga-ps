@@ -2,7 +2,10 @@
 
 import {
   deleteClass,
+  deleteAnnouncement,
   deleteExam,
+  deleteEvent,
+  deleteLesson,
   deleteStudent,
   deleteSubject,
   deleteTeacher,
@@ -22,13 +25,56 @@ const deleteActionMap = {
   teacher: deleteTeacher,
   student: deleteStudent,
   exam: deleteExam,
-// TODO: OTHER DELETE ACTIONS
-  lesson: deleteSubject,
-  assignment: deleteSubject,
-  result: deleteSubject,
-  attendance: deleteSubject,
-  event: deleteSubject,
-  announcement: deleteSubject,
+  lesson: deleteLesson,
+  event: deleteEvent,
+  announcement: deleteAnnouncement,
+};
+
+type DeleteAction = (typeof deleteActionMap)[keyof typeof deleteActionMap];
+
+const DeleteForm = ({
+  action,
+  id,
+  table,
+  onDeleted,
+}: {
+  action: DeleteAction;
+  id: number | string;
+  table: FormContainerProps["table"];
+  onDeleted: () => void;
+}) => {
+  const [state, formAction] = useFormState(action, {
+    success: false,
+    error: false,
+  });
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state.success) {
+      toast(`${table} has been deleted!`);
+      onDeleted();
+      router.refresh();
+    }
+  }, [state.success, table, onDeleted, router]);
+
+  return (
+    <form action={formAction} className="p-6 flex flex-col gap-5">
+      <input type="text" name="id" value={id} readOnly hidden />
+      <div className="flex flex-col items-center gap-3 text-center">
+        <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
+          <Trash2 size={22} className="text-red-500" />
+        </div>
+        <p className="font-semibold text-slate-800">Delete {table}?</p>
+        <p className="text-sm text-slate-500">All data will be permanently lost. This action cannot be undone.</p>
+      </div>
+      {state.error && "message" in state && state.message && (
+        <p className="text-sm text-red-600 text-center">{state.message}</p>
+      )}
+      <button className="bg-red-600 hover:bg-red-700 text-white py-2.5 px-6 rounded-xl font-semibold text-sm w-max self-center transition-colors">
+        Yes, delete
+      </button>
+    </form>
+  );
 };
 
 // USE LAZY LOADING
@@ -122,40 +168,21 @@ const FormModal = ({
   const [open, setOpen] = useState(false);
 
   const Form = () => {
-    const [state, formAction] = useFormState(deleteActionMap[table], {
-      success: false,
-      error: false,
-    });
+    if (type === "delete" && id) {
+      const action = deleteActionMap[table as keyof typeof deleteActionMap];
+      return action ? (
+        <DeleteForm action={action} id={id} table={table} onDeleted={() => setOpen(false)} />
+      ) : (
+        <p className="p-6 text-sm text-red-600">Delete is not available for {table}.</p>
+      );
+    }
 
-    const router = useRouter();
-
-    useEffect(() => {
-      if (state.success) {
-        toast(`${table} has been deleted!`);
-        setOpen(false);
-        router.refresh();
-      }
-    }, [state, router]);
-
-    return type === "delete" && id ? (
-      <form action={formAction} className="p-6 flex flex-col gap-5">
-        <input type="text | number" name="id" value={id} hidden />
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
-            <Trash2 size={22} className="text-red-500" />
-          </div>
-          <p className="font-semibold text-slate-800">Delete {table}?</p>
-          <p className="text-sm text-slate-500">All data will be permanently lost. This action cannot be undone.</p>
-        </div>
-        <button className="bg-red-600 hover:bg-red-700 text-white py-2.5 px-6 rounded-xl font-semibold text-sm w-max self-center transition-colors">
-          Yes, delete
-        </button>
-      </form>
-    ) : type === "create" || type === "update" ? (
-      forms[table](setOpen, type, data, relatedData)
-    ) : (
-      "Form not found!"
-    );
+    const renderForm = forms[table];
+    return type === "create" || type === "update"
+      ? renderForm
+        ? renderForm(setOpen, type, data, relatedData)
+        : <p className="p-6 text-sm text-red-600">Form is not available for {table}.</p>
+      : "Form not found!";
   };
 
   return (
