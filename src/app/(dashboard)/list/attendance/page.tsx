@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import AttendancePortal from "./AttendancePortal";
 import AttendanceAnalytics from "./AttendanceAnalytics";
 import Link from "next/link";
+import { getSchoolDateString, parseDateOnlyUtc } from "@/lib/schoolDate";
 
 interface PageProps {
   searchParams: {
@@ -21,11 +22,9 @@ export default async function AttendancePage({ searchParams }: PageProps) {
 
   const isAdminOrTeacher = role === "admin" || role === "teacher";
 
-  const today = new Date();
-  const offset = today.getTimezoneOffset();
-  const localToday = new Date(today.getTime() - offset * 60 * 1000);
-  const todayStr = localToday.toISOString().split("T")[0];
-  const selectedDate = searchParams.date || todayStr;
+  const todayStr = getSchoolDateString();
+  const requestedDate = searchParams.date ? parseDateOnlyUtc(searchParams.date) : null;
+  const selectedDate = requestedDate ? searchParams.date! : todayStr;
 
   if (isAdminOrTeacher) {
     const classes = await prisma.class.findMany({
@@ -50,8 +49,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
           orderBy: { name: "asc" },
         });
 
-        const attendanceDate = new Date(selectedDate);
-        attendanceDate.setHours(0, 0, 0, 0);
+        const attendanceDate = parseDateOnlyUtc(selectedDate)!;
 
         existingAttendance = await prisma.attendance.findMany({
           where: {

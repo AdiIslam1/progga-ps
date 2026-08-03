@@ -15,6 +15,7 @@ import prisma from "./prisma";
 import { hashPassword } from "./password";
 import { randomUUID } from "crypto";
 import { authorizeRoles } from "./auth-server";
+import { parseDateOnlyUtc } from "./schoolDate";
 
 type CurrentState = { success: boolean; error: boolean; id?: string; message?: string };
 
@@ -762,6 +763,11 @@ export const saveBulkAttendance = async (
   const actor = await requireStaff();
   if (!actor) return { success: false, message: "You are not authorized to record attendance." };
 
+  const attendanceDate = parseDateOnlyUtc(dateStr);
+  if (!attendanceDate) {
+    return { success: false, message: "Attendance date must be a valid YYYY-MM-DD date." };
+  }
+
   if (actor.role === "teacher") {
     const assignedClass = await prisma.class.findFirst({
       where: { id: classId, lessons: { some: { teacherId: actor.userId } } },
@@ -784,9 +790,6 @@ export const saveBulkAttendance = async (
   }
 
   try {
-    const attendanceDate = new Date(dateStr);
-    attendanceDate.setHours(0, 0, 0, 0);
-
     const existing = await prisma.attendance.findMany({
       where: {
         classId,
