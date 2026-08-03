@@ -50,7 +50,12 @@ const TodayLessonsPanel = async ({ teacherId }: { teacherId: string }) => {
   ]);
 
   const markedClasses = new Set(attendanceTaken.map((a) => a.classId));
-  const pendingCount = lessons.filter((l) => !markedClasses.has(l.class.id)).length;
+  const pendingClassIds = new Set(
+    lessons
+      .map((lesson) => lesson.class.id)
+      .filter((classId) => !markedClasses.has(classId))
+  );
+  const pendingCount = pendingClassIds.size;
 
   return (
     <div className="bg-white p-4 rounded-xl border border-gray-100">
@@ -59,7 +64,7 @@ const TodayLessonsPanel = async ({ teacherId }: { teacherId: string }) => {
         <div className="flex items-center gap-2">
           {pendingCount > 0 && (
             <span className="text-xs bg-orange-50 border border-orange-200 text-orange-600 px-2 py-0.5 rounded-full">
-              {pendingCount} attendance pending
+              {pendingCount} class{pendingCount === 1 ? "" : "es"} attendance pending
             </span>
           )}
           <span className="text-xs text-gray-400">{lessons.length} lessons</span>
