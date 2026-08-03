@@ -499,20 +499,74 @@ export const updateStudent = async (
   if (!data.id) {
     return { success: false, error: true };
   }
-  try {
-    await prisma.student.update({
-      where: {
-        id: data.id,
-      },
-      data: studentMutationData(data),
-    });
-    revalidatePath("/list/students");
-    revalidatePath(`/list/students/${data.id}`);
-    return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true, message: actionErrorMessage(err) };
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const result = await prisma.$transaction(
+        async (tx) => {
+          const existingStudent = await tx.student.findUnique({
+            where: { id: data.id },
+            select: { classId: true },
+          });
+
+          if (!existingStudent) {
+            return {
+              success: false as const,
+              message: "Student was not found.",
+            };
+          }
+
+          if (existingStudent.classId !== data.classId) {
+            const destinationClass = await tx.class.findUnique({
+              where: { id: data.classId },
+              include: { _count: { select: { students: true } } },
+            });
+
+            if (!destinationClass) {
+              return {
+                success: false as const,
+                message: "Selected class was not found.",
+              };
+            }
+
+            if (destinationClass.capacity <= destinationClass._count.students) {
+              return {
+                success: false as const,
+                message: "Selected class is already full.",
+              };
+            }
+          }
+
+          await tx.student.update({
+            where: { id: data.id },
+            data: studentMutationData(data),
+          });
+
+          return { success: true as const };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+      );
+
+      if (!result.success) {
+        return { success: false, error: true, message: result.message };
+      }
+
+      revalidatePath("/list/students");
+      revalidatePath(`/list/students/${data.id}`);
+      return { success: true, error: false };
+    } catch (err) {
+      if (isPrismaCode(err, "P2034") && attempt < 3) continue;
+
+      console.log(err);
+      return { success: false, error: true, message: actionErrorMessage(err) };
+    }
   }
+
+  return {
+    success: false,
+    error: true,
+    message: "Student update could not be completed. Please try again.",
+  };
 };
 
 export const deleteStudent = async (
