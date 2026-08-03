@@ -369,8 +369,8 @@ enum Day {
   TUESDAY
   WEDNESDAY
   THURSDAY
-  FRIDAY
   SAT
+  SUNDAY
 }
 
 enum FeePackageType {

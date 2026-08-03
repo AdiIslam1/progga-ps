@@ -3,14 +3,14 @@ import { auth } from "@/lib/auth-server";
 import { redirect } from "next/navigation";
 import RoutineTable, { Period, RoutineCell, RoutineRow } from "./RoutineTable";
 
-const DAYS = ["SAT", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"] as const;
+const DAYS = ["SAT", "SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY"] as const;
 const DAY_LABELS: Record<string, string> = {
   SAT: "Saturday",
+  SUNDAY: "Sunday",
   MONDAY: "Monday",
   TUESDAY: "Tuesday",
   WEDNESDAY: "Wednesday",
   THURSDAY: "Thursday",
-  FRIDAY: "Friday",
 };
 
 function ordinal(n: number): string {

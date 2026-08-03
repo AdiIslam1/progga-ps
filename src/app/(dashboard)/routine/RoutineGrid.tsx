@@ -19,22 +19,22 @@ type LessonItem = {
   teacher: Teacher;
 };
 
-const DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SAT"] as const;
+const DAYS = ["SAT", "SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY"] as const;
 const DAY_LABELS: Record<string, string> = {
+  SAT: "Saturday",
+  SUNDAY: "Sunday",
   MONDAY: "Monday",
   TUESDAY: "Tuesday",
   WEDNESDAY: "Wednesday",
   THURSDAY: "Thursday",
-  FRIDAY: "Friday",
-  SAT: "Saturday",
 };
 const DAY_COLORS: Record<string, string> = {
+  SAT: "bg-amber-50 border-b border-amber-100 text-amber-600",
+  SUNDAY: "bg-pink-50 border-b border-pink-100 text-pink-600",
   MONDAY: "bg-lamaSkyLight border-b border-sky-100 text-lamaSky",
   TUESDAY: "bg-lamaPurpleLight border-b border-purple-100 text-purple-600",
   WEDNESDAY: "bg-lamaYellowLight border-b border-yellow-100 text-yellow-700",
   THURSDAY: "bg-green-50 border-b border-green-100 text-green-700",
-  FRIDAY: "bg-pink-50 border-b border-pink-100 text-pink-600",
-  SAT: "bg-amber-50 border-b border-amber-100 text-amber-600",
 };
 
 function fmtTime(iso: string) {

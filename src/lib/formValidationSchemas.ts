@@ -125,7 +125,7 @@ export type ExamScheduleSchema = z.infer<typeof examScheduleSchema>;
 
 export const lessonSchema = z.object({
   id: z.coerce.number().optional(),
-  day: z.enum(["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SAT"], {
+  day: z.enum(["SAT", "SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY"], {
     required_error: "Day is required!",
   }),
   subjectId: z.coerce.number({ required_error: "Subject is required!" }).min(1, "Subject is required!"),

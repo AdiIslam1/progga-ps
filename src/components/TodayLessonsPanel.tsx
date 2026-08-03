@@ -2,19 +2,21 @@ import prisma from "@/lib/prisma";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { Day } from "@prisma/client";
 import Link from "next/link";
+import { getSchoolDateString, parseDateOnlyUtc } from "@/lib/schoolDate";
 
 const JS_DAY_TO_DB: Record<number, Day | null> = {
-  0: null,          // Sunday — no school
+  0: "SUNDAY",
   1: "MONDAY",
   2: "TUESDAY",
   3: "WEDNESDAY",
   4: "THURSDAY",
-  5: "FRIDAY",
+  5: null,          // Friday — school closed
   6: "SAT",
 };
 
 const TodayLessonsPanel = async ({ teacherId }: { teacherId: string }) => {
-  const todayDay = JS_DAY_TO_DB[new Date().getDay()];
+  const today = parseDateOnlyUtc(getSchoolDateString())!;
+  const todayDay = JS_DAY_TO_DB[today.getUTCDay()];
 
   if (!todayDay) {
     return (
@@ -25,10 +27,7 @@ const TodayLessonsPanel = async ({ teacherId }: { teacherId: string }) => {
     );
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
+  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
   const [lessons, attendanceTaken] = await Promise.all([
     prisma.lesson.findMany({
