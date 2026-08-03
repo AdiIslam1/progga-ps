@@ -1,20 +1,19 @@
 import Image from "next/image";
 import AttendanceChart from "./AttendanceChart";
 import prisma from "@/lib/prisma";
+import { getSchoolDateString, parseDateOnlyUtc } from "@/lib/schoolDate";
 
 const AttendanceChartContainer = async () => {
-  const today = new Date();
-  const dayOfWeek = today.getDay();
-  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-
-  const lastMonday = new Date(today);
-
-  lastMonday.setDate(today.getDate() - daysSinceMonday);
+  const today = parseDateOnlyUtc(getSchoolDateString())!;
+  const daysSinceSaturday = (today.getUTCDay() + 1) % 7;
+  const weekStart = new Date(today.getTime() - daysSinceSaturday * 24 * 60 * 60 * 1000);
+  const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
 
   const resData = await prisma.attendance.findMany({
     where: {
       date: {
-        gte: lastMonday,
+        gte: weekStart,
+        lt: weekEnd,
       },
     },
     select: {
@@ -25,25 +24,30 @@ const AttendanceChartContainer = async () => {
 
   // console.log(data)
 
-  const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const daysOfWeek = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu"];
+  const dayNameByUtcDay: Record<number, string> = {
+    0: "Sun",
+    1: "Mon",
+    2: "Tue",
+    3: "Wed",
+    4: "Thu",
+    6: "Sat",
+  };
 
   const attendanceMap: { [key: string]: { present: number; absent: number } } =
     {
+      Sat: { present: 0, absent: 0 },
+      Sun: { present: 0, absent: 0 },
       Mon: { present: 0, absent: 0 },
       Tue: { present: 0, absent: 0 },
       Wed: { present: 0, absent: 0 },
       Thu: { present: 0, absent: 0 },
-      Fri: { present: 0, absent: 0 },
-      Sat: { present: 0, absent: 0 },
     };
 
   resData.forEach((item) => {
-    const itemDate = new Date(item.date);
-    const dayOfWeek = itemDate.getDay();
+    const dayName = dayNameByUtcDay[item.date.getUTCDay()];
 
-    if (dayOfWeek >= 1 && dayOfWeek <= 6) {
-      const dayName = daysOfWeek[dayOfWeek - 1];
-
+    if (dayName) {
       if (item.present) {
         attendanceMap[dayName].present += 1;
       } else {

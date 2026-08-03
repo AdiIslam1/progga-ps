@@ -1,12 +1,11 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { UserCheck } from "lucide-react";
+import { getSchoolDateString, parseDateOnlyUtc } from "@/lib/schoolDate";
 
 const TodayAttendanceCard = async () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
+  const today = parseDateOnlyUtc(getSchoolDateString())!;
+  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
   const records = await prisma.attendance.findMany({
     where: { date: { gte: today, lt: tomorrow } },
