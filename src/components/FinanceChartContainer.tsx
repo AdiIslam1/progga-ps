@@ -1,12 +1,17 @@
 import prisma from "@/lib/prisma";
 import FinanceChart from "./FinanceChart";
+import {
+  getSchoolMonthIndex,
+  getSchoolYear,
+  getSchoolYearStartUtc,
+} from "@/lib/schoolDate";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 const FinanceChartContainer = async () => {
-  const currentYear = new Date().getFullYear();
-  const yearStart = new Date(`${currentYear}-01-01`);
-  const yearEnd = new Date(`${currentYear + 1}-01-01`);
+  const currentYear = getSchoolYear();
+  const yearStart = getSchoolYearStartUtc(currentYear);
+  const yearEnd = getSchoolYearStartUtc(currentYear + 1);
 
   const [feeData, expenseData, inventorySales] = await Promise.all([
     prisma.feeCollection.findMany({
@@ -27,13 +32,13 @@ const FinanceChartContainer = async () => {
   const expense = new Array(12).fill(0);
 
   feeData.forEach((r) => {
-    if (r.paidAt) income[new Date(r.paidAt).getMonth()] += r.paidAmount;
+    if (r.paidAt) income[getSchoolMonthIndex(r.paidAt)] += r.paidAmount;
   });
   inventorySales.forEach((r) => {
-    income[new Date(r.createdAt).getMonth()] += r.totalAmount;
+    income[getSchoolMonthIndex(r.createdAt)] += r.totalAmount;
   });
   expenseData.forEach((r) => {
-    expense[new Date(r.date).getMonth()] += r.amount;
+    expense[getSchoolMonthIndex(r.date)] += r.amount;
   });
 
   const chartData = MONTHS.map((name, i) => ({

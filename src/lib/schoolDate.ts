@@ -12,6 +12,20 @@ export const getSchoolDateString = (date: Date = new Date()) => {
   return `${values.year}-${values.month}-${values.day}`;
 };
 
+export const getSchoolYear = (date: Date = new Date()) =>
+  Number(getSchoolDateString(date).slice(0, 4));
+
+export const getSchoolMonthIndex = (date: Date) =>
+  Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: SCHOOL_TIME_ZONE,
+      month: "numeric",
+    }).format(date)
+  ) - 1;
+
+export const getSchoolYearStartUtc = (year: number) =>
+  new Date(Date.UTC(year, 0, 1) - 6 * 60 * 60 * 1000);
+
 // Date-only values are stored at UTC midnight so they remain stable across server timezones.
 export const parseDateOnlyUtc = (value: string): Date | null => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
