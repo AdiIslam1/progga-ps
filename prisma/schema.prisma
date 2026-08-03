@@ -81,7 +81,7 @@ model Teacher {
   name              String
   surname           String
   email             String?             @unique
-  phone             String?             @unique
+  phone             String?
   address           String
   img               String?
   bloodType         String
