@@ -268,10 +268,12 @@ export const billAdditionalFee = async (
 export const collectFees = async (
   studentId: string,
   collectionIds: number[],
-  cashierUsername: string,
   discount: number = 0
 ) => {
-  if (!(await requireAdmin())) return unauthorized();
+  const actor = await requireAdmin();
+  if (!actor) return unauthorized();
+  const cashierIdentity = actor.username || actor.userId;
+  if (!cashierIdentity) return unauthorized();
   try {
     if (!isNonNegativeAmount(discount)) {
       return { success: false, message: "Discount must be a valid non-negative amount." };
@@ -337,7 +339,7 @@ export const collectFees = async (
               paidAmount: Math.max(0, paidAmounts[index]),
               paidAt: new Date(),
               receiptNo,
-              receivedById: cashierUsername,
+              receivedById: cashierIdentity,
             },
           });
           if (updated.count !== 1) {

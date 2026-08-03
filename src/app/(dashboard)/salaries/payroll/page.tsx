@@ -10,7 +10,7 @@ export default async function PayrollPage({
 }: {
   searchParams: { teacherId?: string; search?: string };
 }) {
-  const { role, username } = await auth();
+  const { role } = await auth();
   if (role !== "admin") redirect("/");
 
   const selectedTeacherId = searchParams.teacherId;
@@ -121,7 +121,6 @@ export default async function PayrollPage({
             teacherId={teacher.id}
             unpaidSalaries={unpaidSalaries}
             paidSalaries={paidSalaries}
-            cashierUsername={username || "system"}
           />
         </div>
       </div>

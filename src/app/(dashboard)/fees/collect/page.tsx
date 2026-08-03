@@ -10,7 +10,7 @@ export default async function CollectFeesPage({
 }: {
   searchParams: { classId?: string; studentId?: string; search?: string };
 }) {
-  const { role, username } = await auth();
+  const { role } = await auth();
   if (role !== "admin" && role !== "teacher") redirect("/");
 
   const selectedStudentId = searchParams.studentId;
@@ -97,7 +97,6 @@ export default async function CollectFeesPage({
                 baseClassFee={baseClassFee}
                 unpaidFees={unpaidFees}
                 paidFees={paidFees}
-                cashierUsername={username || "system_cashier"}
               />
             </div>
             <div className="flex flex-col gap-4">

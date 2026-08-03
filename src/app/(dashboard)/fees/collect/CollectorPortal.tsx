@@ -31,7 +31,6 @@ interface CollectorPortalProps {
   baseClassFee: number;
   unpaidFees: FeeItem[];
   paidFees: PaidFeeItem[];
-  cashierUsername: string;
 }
 
 export default function CollectorPortal({
@@ -41,7 +40,6 @@ export default function CollectorPortal({
   baseClassFee,
   unpaidFees,
   paidFees,
-  cashierUsername,
 }: CollectorPortalProps) {
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -107,7 +105,7 @@ export default function CollectorPortal({
     }
     setLoading(true);
     try {
-      const res = await collectFees(studentId, selectedIds, cashierUsername, discountVal);
+      const res = await collectFees(studentId, selectedIds, discountVal);
       if (res.success && res.receiptNo) {
         toast.success(`Payment confirmed! Receipt ${res.receiptNo} generated.`);
         router.push(`/fees/receipt/${res.receiptNo}`);

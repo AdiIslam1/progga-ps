@@ -159,10 +159,12 @@ export const updateSalaryAdjustment = async (
 
 export const processSalaryPayment = async (
   teacherId: string,
-  collectionIds: number[],
-  cashierUsername: string
+  collectionIds: number[]
 ) => {
-  if (!(await requireAdmin())) return unauthorized();
+  const actor = await requireAdmin();
+  if (!actor) return unauthorized();
+  const cashierIdentity = actor.username || actor.userId;
+  if (!cashierIdentity) return unauthorized();
   try {
     if (collectionIds.length === 0)
       return { success: false, message: "No salary records selected." };
@@ -225,7 +227,7 @@ export const processSalaryPayment = async (
               paidAt: new Date(),
               receiptNo:
                 collections.length === 1 ? receiptNo : `${receiptNo}-${collection.id}`,
-              receivedById: cashierUsername,
+              receivedById: cashierIdentity,
             },
           });
           if (updated.count !== 1) {

@@ -30,7 +30,6 @@ interface PayrollPortalProps {
   teacherId: string;
   unpaidSalaries: SalaryItem[];
   paidSalaries: PaidSalaryItem[];
-  cashierUsername: string;
 }
 
 function AdjustmentEditor({
@@ -126,7 +125,6 @@ export default function PayrollPortal({
   teacherId,
   unpaidSalaries,
   paidSalaries,
-  cashierUsername,
 }: PayrollPortalProps) {
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -154,7 +152,7 @@ export default function PayrollPortal({
     }
     setLoading(true);
     try {
-      const res = await processSalaryPayment(teacherId, selectedIds, cashierUsername);
+      const res = await processSalaryPayment(teacherId, selectedIds);
       if (res.success) {
         toast.success(`Salary paid! Receipt ${res.receiptNo} generated.`);
         setSelectedIds([]);
