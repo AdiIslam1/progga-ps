@@ -7,6 +7,9 @@ import { authorizeRoles } from "./auth-server";
 import { randomUUID } from "crypto";
 
 const requireAdmin = () => authorizeRoles(["admin"]);
+const isPositiveAmount = (value: number) => Number.isFinite(value) && value > 0;
+const isNonNegativeAmount = (value: number) => Number.isFinite(value) && value >= 0;
+const isValidBillingMonth = (value: string) => /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 const unauthorized = () => ({
   success: false as const,
   error: true as const,
@@ -32,6 +35,9 @@ export const billTeacherSalary = async (
   month: string // "YYYY-MM"
 ) => {
   if (!(await requireAdmin())) return unauthorized();
+  if (!isValidBillingMonth(month)) {
+    return { success: false, message: "Billing month must use YYYY-MM format." };
+  }
   try {
     const teacher = await prisma.teacher.findUnique({
       where: { id: teacherId },
@@ -39,7 +45,7 @@ export const billTeacherSalary = async (
     });
 
     if (!teacher) return { success: false, message: "Teacher not found." };
-    if (!teacher.monthlySalary)
+    if (!teacher.monthlySalary || !isPositiveAmount(teacher.monthlySalary))
       return { success: false, message: "This teacher has no monthly salary set." };
 
     const existing = await prisma.salaryCollection.findFirst({
@@ -68,9 +74,12 @@ export const billTeacherSalary = async (
 
 export const billAllTeacherSalaries = async (month: string) => {
   if (!(await requireAdmin())) return unauthorized();
+  if (!isValidBillingMonth(month)) {
+    return { success: false, error: true, message: "Billing month must use YYYY-MM format." };
+  }
   try {
     const teachers = await prisma.teacher.findMany({
-      where: { monthlySalary: { not: null } },
+      where: { monthlySalary: { gt: 0 } },
       select: { id: true, name: true, surname: true, monthlySalary: true },
     });
 
@@ -121,7 +130,21 @@ export const updateSalaryAdjustment = async (
   note: string
 ) => {
   if (!(await requireAdmin())) return unauthorized();
+  if (!isNonNegativeAmount(bonus) || !isNonNegativeAmount(deduction)) {
+    return { success: false, message: "Bonus and deduction must be valid non-negative amounts." };
+  }
   try {
+    const salary = await prisma.salaryCollection.findUnique({
+      where: { id },
+      select: { amount: true, status: true },
+    });
+    if (!salary) return { success: false, message: "Salary record not found." };
+    if (salary.status === SalaryStatus.PAID) {
+      return { success: false, message: "A paid salary record cannot be adjusted." };
+    }
+    if (!isPositiveAmount(salary.amount) || deduction > salary.amount + bonus) {
+      return { success: false, message: "Deduction cannot exceed salary plus bonus." };
+    }
     await prisma.salaryCollection.update({
       where: { id },
       data: { bonus, deduction, note: note || null },
@@ -170,11 +193,28 @@ export const processSalaryPayment = async (
           );
         }
 
+        if (
+          collections.some(
+            (collection) =>
+              !isPositiveAmount(collection.amount) ||
+              !isNonNegativeAmount(collection.bonus) ||
+              !isNonNegativeAmount(collection.deduction) ||
+              collection.deduction > collection.amount + collection.bonus
+          )
+        ) {
+          throw new SalaryPaymentConflictError(
+            "Every selected salary must have a valid positive payout."
+          );
+        }
+
         const totalAmount = collections.reduce(
           (sum, collection) =>
             sum + collection.amount + collection.bonus - collection.deduction,
           0
         );
+        if (!isPositiveAmount(totalAmount)) {
+          throw new SalaryPaymentConflictError("The salary payment total must be positive.");
+        }
 
         for (const collection of collections) {
           const updated = await tx.salaryCollection.updateMany({
@@ -232,6 +272,9 @@ export const createBonusPackage = async (
   description: string
 ) => {
   if (!(await requireAdmin())) return unauthorized();
+  if (!name.trim() || !isPositiveAmount(amount)) {
+    return { success: false, message: "Name and a positive bonus amount are required." };
+  }
   try {
     await prisma.bonusPackage.create({
       data: { name, amount, description: description || null },
@@ -258,9 +301,15 @@ export const deleteBonusPackage = async (id: number) => {
 
 export const applyBonusPackage = async (packageId: number, month: string) => {
   if (!(await requireAdmin())) return unauthorized();
+  if (!isValidBillingMonth(month)) {
+    return { success: false, message: "Billing month must use YYYY-MM format." };
+  }
   try {
     const pkg = await prisma.bonusPackage.findUnique({ where: { id: packageId } });
     if (!pkg) return { success: false, message: "Bonus package not found." };
+    if (!isPositiveAmount(pkg.amount)) {
+      return { success: false, message: "Bonus package amount must be positive." };
+    }
 
     const teachers = await prisma.teacher.findMany({
       select: { id: true, name: true, surname: true },

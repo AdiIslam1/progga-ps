@@ -7,6 +7,9 @@ import { authorizeRoles } from "./auth-server";
 import { randomUUID } from "crypto";
 
 const requireAdmin = () => authorizeRoles(["admin"]);
+const isPositiveAmount = (value: number) => Number.isFinite(value) && value > 0;
+const isNonNegativeAmount = (value: number) => Number.isFinite(value) && value >= 0;
+const isValidBillingMonth = (value: string) => /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 const unauthorized = () => ({
   success: false as const,
   error: true as const,
@@ -32,6 +35,9 @@ export const createFeePackage = async (
   }
 ) => {
   if (!(await requireAdmin())) return unauthorized();
+  if (!data.name.trim() || !isPositiveAmount(data.amount)) {
+    return { success: false, error: true, message: "Name and a positive amount are required." };
+  }
   try {
     const classIdNum = data.classId ? parseInt(data.classId) : undefined;
     await prisma.feePackage.create({
@@ -57,6 +63,9 @@ export const updateFeePackage = async (
   data: { name: string; amount: number; description?: string }
 ) => {
   if (!(await requireAdmin())) return unauthorized();
+  if (!data.name.trim() || !isPositiveAmount(data.amount)) {
+    return { success: false, message: "Name and a positive amount are required." };
+  }
   try {
     await prisma.feePackage.update({
       where: { id },
@@ -102,6 +111,12 @@ export const billAdditionalFee = async (
   }
 ) => {
   if (!(await requireAdmin())) return unauthorized();
+  if (!data.name.trim() || !isPositiveAmount(data.amount)) {
+    return { success: false, error: true, message: "Name and a positive amount are required." };
+  }
+  if (data.month && !isValidBillingMonth(data.month)) {
+    return { success: false, error: true, message: "Billing month must use YYYY-MM format." };
+  }
   try {
     const packageId = data.feePackageId ? parseInt(data.feePackageId) : null;
     const month = data.month || null;
@@ -258,6 +273,9 @@ export const collectFees = async (
 ) => {
   if (!(await requireAdmin())) return unauthorized();
   try {
+    if (!isNonNegativeAmount(discount)) {
+      return { success: false, message: "Discount must be a valid non-negative amount." };
+    }
     if (collectionIds.length === 0) {
       return { success: false, message: "No unpaid items selected" };
     }
@@ -290,6 +308,12 @@ export const collectFees = async (
 
         // Distribute discount proportionally across items; adjust last item for rounding
         const subtotal = collections.reduce((sum, collection) => sum + collection.amount, 0);
+        if (!isPositiveAmount(subtotal) || collections.some((collection) => !isPositiveAmount(collection.amount))) {
+          throw new PaymentConflictError("Every selected fee must have a valid positive amount.");
+        }
+        if (discount >= subtotal) {
+          throw new PaymentConflictError("Discount must be less than the selected fee total.");
+        }
         const safeDiscount = Math.min(Math.max(discount, 0), subtotal);
 
         let distributed = 0;
@@ -352,6 +376,9 @@ export const setCustomTuitionFee = async (
   amount: number | null
 ) => {
   if (!(await requireAdmin())) return unauthorized();
+  if (amount !== null && !isPositiveAmount(amount)) {
+    return { success: false, message: "Custom tuition must be a valid positive amount." };
+  }
   try {
     await prisma.student.update({
       where: { id: studentId },
@@ -368,6 +395,9 @@ export const setCustomTuitionFee = async (
 // Edit the amount of an unpaid fee collection record
 export const updateFeeAmount = async (id: number, amount: number) => {
   if (!(await requireAdmin())) return unauthorized();
+  if (!isPositiveAmount(amount)) {
+    return { success: false, message: "Fee amount must be a valid positive amount." };
+  }
   try {
     const fee = await prisma.feeCollection.findUnique({ where: { id }, select: { status: true } });
     if (!fee || fee.status === "PAID") {
@@ -391,6 +421,15 @@ export const bulkAdmissionFee = async (data: {
   amount: number;
 }) => {
   if (!(await requireAdmin())) return unauthorized();
+  if (!Number.isInteger(data.year) || data.year < 2000 || data.year > 9999) {
+    return { success: false, message: "Enter a valid four-digit billing year." };
+  }
+  if (!isPositiveAmount(data.amount)) {
+    return { success: false, message: "Admission fee must be a valid positive amount." };
+  }
+  if (data.classId !== "all" && (!Number.isInteger(Number(data.classId)) || Number(data.classId) <= 0)) {
+    return { success: false, message: "Select a valid class." };
+  }
   try {
     const feeName = `Admission Fee ${data.year}`;
 
@@ -452,6 +491,9 @@ export const createExpense = async (
   }
 ) => {
   if (!(await requireAdmin())) return unauthorized();
+  if (!data.title.trim() || !data.category.trim() || !isPositiveAmount(data.amount)) {
+    return { success: false, error: true, message: "Title, category, and a positive amount are required." };
+  }
   try {
     await prisma.expense.create({
       data: {
